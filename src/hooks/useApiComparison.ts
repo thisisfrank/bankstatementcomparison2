@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
 import { 
   apiService, 
-  ComparisonResult, 
   ApiError, 
-  parseApiError,
-  mockComparisonResult 
+  parseApiError
 } from '../services/api';
+import { ComparisonResult } from '../types';
+import { StatementProcessor } from '../services/statementProcessor';
+import { ComparisonEngine } from '../services/comparisonEngine';
 
 interface UseApiComparisonReturn {
   // State
@@ -14,14 +15,12 @@ interface UseApiComparisonReturn {
   result: ComparisonResult | null;
   progress: number;
 
-  // Actions
+    // Actions
   compareStatements: (file1: File, file2: File, userId?: string) => Promise<void>;
+  setError: (error: ApiError) => void;
   clearError: () => void;
   clearResult: () => void;
   reset: () => void;
-
-  // Utils
-  useMockData: () => void;
   validateFiles: (file1: File, file2: File) => { isValid: boolean; errors: string[] };
 }
 
@@ -77,6 +76,7 @@ export function useApiComparison(): UseApiComparisonReturn {
       return;
     }
 
+    console.log('🔍 API Hook: Starting comparison process');
     setIsLoading(true);
     
     try {
@@ -84,22 +84,61 @@ export function useApiComparison(): UseApiComparisonReturn {
       setProgress(10);
       
       // Check API health first
+      console.log('🔍 API Hook: Checking API health...');
       setProgress(20);
       await apiService.healthCheck();
+      console.log('✅ API Hook: Health check passed');
       
       setProgress(40);
       
-      // Parse and compare statements
-      const comparisonResult = await apiService.parseAndCompare(file1, file2, userId);
+      // Process statements through API
+      console.log('📊 API Hook: Starting statement processing...');
+      const apiResults = await apiService.processTwoStatements(file1, file2);
+      console.log('✅ API Hook: API processing completed');
+      
+      setProgress(60);
+      
+      // Convert API responses to internal format
+      console.log('🔄 Processing: Converting API responses to internal format...');
+      const statement1 = StatementProcessor.convertToInternalFormat(apiResults.file1Result, apiResults.file1Name);
+      const statement2 = StatementProcessor.convertToInternalFormat(apiResults.file2Result, apiResults.file2Name);
+      console.log('✅ Processing: Conversion completed');
+      
+      setProgress(80);
+      
+      // Generate comparison
+      console.log('🔄 Comparison: Generating comparison result...');
+      const comparisonResult = ComparisonEngine.compareStatements(statement1, statement2);
+      console.log('✅ Comparison: Comparison completed', { hasComparison: !!comparisonResult?.comparison });
       
       setProgress(90);
       
       // Validate result structure
       if (!comparisonResult || !comparisonResult.comparison) {
         throw new Error(JSON.stringify({
-          error: 'Invalid response from server',
-          code: 'INVALID_RESPONSE',
-          details: 'Missing comparison data'
+          error: 'Invalid comparison result',
+          code: 'COMPARISON_ERROR',
+          details: 'Failed to generate comparison data'
+        }));
+      }
+
+      // Validate parsed statements
+      const validation1 = StatementProcessor.validateParsedStatement(comparisonResult.statement1);
+      const validation2 = StatementProcessor.validateParsedStatement(comparisonResult.statement2);
+      
+      if (!validation1.isValid) {
+        throw new Error(JSON.stringify({
+          error: 'Statement 1 validation failed',
+          code: 'VALIDATION_ERROR',
+          details: validation1.errors.join('; ')
+        }));
+      }
+      
+      if (!validation2.isValid) {
+        throw new Error(JSON.stringify({
+          error: 'Statement 2 validation failed',
+          code: 'VALIDATION_ERROR',
+          details: validation2.errors.join('; ')
         }));
       }
 
@@ -123,8 +162,20 @@ export function useApiComparison(): UseApiComparisonReturn {
           case 'PARSE_ERROR':
             apiError.error = 'Unable to parse the bank statement. Please ensure the PDF is not password protected and contains readable text.';
             break;
+          case 'PROCESSING_ERROR':
+            apiError.error = 'Error occurred during statement processing. The PDF may be corrupted or in an unsupported format.';
+            break;
           case 'COMPARISON_ERROR':
             apiError.error = 'Error occurred during comparison. Please try again with different files.';
+            break;
+          case 'ANONYMOUS_NOT_ENOUGH_CREDITS':
+            console.log('🔄 API Credits exhausted - Daily limit reached');
+            apiError.error = 'Daily API limit reached';
+            apiError.details = 'The PDF processing service has reached its daily free usage limit. You can:\n• Wait until tomorrow when limits reset\n• Use "Sample Data" button for development\n• Upgrade to a paid API plan for unlimited access';
+            break;
+          case 'CONFIG_ERROR':
+            apiError.error = 'Service configuration error';
+            apiError.details = 'The PDF processing service is not properly configured. Please contact the site administrator.';
             break;
           default:
             if (!apiError.error || apiError.error === 'Unknown error occurred') {
@@ -146,11 +197,10 @@ export function useApiComparison(): UseApiComparisonReturn {
     }
   }, [validateFiles]);
 
-  const useMockData = useCallback(() => {
-    setError(null);
-    setIsLoading(false);
-    setProgress(0);
-    setResult(mockComparisonResult);
+
+
+  const setErrorCallback = useCallback((error: ApiError) => {
+    setError(error);
   }, []);
 
   const clearError = useCallback(() => {
@@ -177,12 +227,12 @@ export function useApiComparison(): UseApiComparisonReturn {
     
     // Actions
     compareStatements,
+    setError: setErrorCallback,
     clearError,
     clearResult,
     reset,
     
     // Utils
-    useMockData,
     validateFiles
   };
 }

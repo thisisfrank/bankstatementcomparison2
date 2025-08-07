@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Upload, FileText, CheckCircle, Edit, BarChart3, Download, Eye, Home, Car, Utensils, ShoppingBag, Gamepad2, Heart, Briefcase, MoreHorizontal } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -13,7 +13,8 @@ interface FileUpload {
 }
 
 // Import API types
-import { Transaction, apiService } from '../services/api';
+import { apiService } from '../services/api';
+import { Transaction } from '../types';
 
 interface CategoryComparison {
   category: string;
@@ -269,9 +270,20 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     result: apiResult,
     progress: apiProgress,
     compareStatements,
-    clearError,
-    useMockData
+    setError,
+    clearError
   } = useApiComparison();
+
+  // Handle API result changes
+  useEffect(() => {
+    if (apiError) {
+      console.error('❌ Comparison failed with API error:', apiError);
+      // Error is displayed via ErrorAlert component, don't show results
+    } else if (apiResult && !apiLoading) {
+      console.log('✅ API comparison completed successfully');
+      setShowResults(true);
+    }
+  }, [apiResult, apiError, apiLoading]);
 
   const handleFileUpload = (statementKey: 'statement1' | 'statement2', file: File) => {
     // If user is not signed in OR this is an empty file for preview trigger, just set preview glow
@@ -319,29 +331,53 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
   };
 
   const handleGenerateComparison = async () => {
-    if (isSignedIn && uploadedFiles.statement1?.file && uploadedFiles.statement2?.file && 
-        uploadedFiles.statement1.file.size > 0 && uploadedFiles.statement2.file.size > 0) {
-      // For signed in users with real files, use API
-      try {
-        await compareStatements(
-          uploadedFiles.statement1.file, 
-          uploadedFiles.statement2.file,
-          'user123' // TODO: Replace with actual user ID from auth
-        );
-        setShowResults(true);
-      } catch (error) {
-        // Error is handled by the hook
-        console.error('Comparison failed:', error);
-      }
-    } else if (isSignedIn) {
-      // Signed in but no real files - use mock data
-      useMockData();
-      setShowResults(true);
-    } else {
+    // Prevent double-clicks and ensure files are ready
+    if (apiLoading) {
+      console.log('⚠️ Button clicked while API is loading - ignoring');
+      return;
+    }
+
+    // Clear any previous errors
+    clearError();
+    
+    // Validate files are properly loaded
+    if (!isSignedIn) {
       // For signed out users, show preview with sign-in prompt
       handleUseSampleData();
       setShowResults(true);
+      return;
     }
+
+    // Check file upload status
+    const file1Ready = uploadedFiles.statement1?.file && uploadedFiles.statement1?.status === 'ready' && uploadedFiles.statement1.file.size > 0;
+    const file2Ready = uploadedFiles.statement2?.file && uploadedFiles.statement2?.status === 'ready' && uploadedFiles.statement2.file.size > 0;
+    
+    if (!file1Ready || !file2Ready) {
+      const missingFiles = [];
+      if (!file1Ready) missingFiles.push('Statement 1');
+      if (!file2Ready) missingFiles.push('Statement 2');
+      
+      setError({
+        error: 'Files not ready',
+        code: 'FILES_NOT_READY',
+        details: `Please wait for file processing to complete: ${missingFiles.join(' and ')}`
+      });
+      return;
+    }
+
+    // For signed in users with ready files, use API
+    console.log('🚀 Starting API comparison with files:', {
+      file1: { name: uploadedFiles.statement1.file.name, size: uploadedFiles.statement1.file.size, status: uploadedFiles.statement1.status },
+      file2: { name: uploadedFiles.statement2.file.name, size: uploadedFiles.statement2.file.size, status: uploadedFiles.statement2.status }
+    });
+
+    await compareStatements(
+      uploadedFiles.statement1.file, 
+      uploadedFiles.statement2.file,
+      'user123' // TODO: Replace with actual user ID from auth
+    );
+    
+    // Note: Result handling is now done via useEffect watching apiResult/apiError
   };
 
   const handleUseSampleData = () => {
@@ -634,14 +670,19 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
               <div className="text-center mb-12">
                 <button
                   onClick={handleGenerateComparison}
+                  disabled={apiLoading}
                   className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-                    isDark 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    apiLoading
+                      ? isDark ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : isDark 
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
                   } ${previewButtonGlowing && !isSignedIn ? 'animate-pulse ring-4 ring-blue-300' : ''}`}
                 >
                   <Eye className="h-5 w-5" />
-                  {isSignedIn ? 'Generate Results' : 'Preview Results'}
+                  {apiLoading 
+                    ? 'Processing...' 
+                    : isSignedIn ? 'Generate Results' : 'Preview Results'}
                 </button>
                 {isSignedIn && (
                   <p className={`mt-3 text-sm ${
@@ -746,7 +787,9 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
                   } ${previewButtonGlowing && !isSignedIn ? 'animate-pulse ring-4 ring-blue-300' : ''}`}
                 >
                   <Eye className="h-5 w-5" />
-                  {isSignedIn ? 'Generate Results' : 'Preview Results'}
+                  {apiLoading 
+                    ? 'Processing...' 
+                    : isSignedIn ? 'Generate Results' : 'Preview Results'}
                 </button>
               </div>
 

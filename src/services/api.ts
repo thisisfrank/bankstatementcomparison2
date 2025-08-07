@@ -49,7 +49,7 @@ export interface UserCreditsResponse {
 }
 
 // Import shared types
-import { ApiError } from '../types';
+import { ApiError, ParsedStatement } from '../types';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_PDF_PARSER_API_URL || 'https://api2.bankstatementconverter.com/api/v1';
@@ -206,6 +206,52 @@ export class ApiService {
     });
   }
 
+  /**
+   * Wait for processing completion with polling (based on working parser)
+   */
+  private async waitForProcessingCompletion(uuids: string[]): Promise<void> {
+    let attempts = 0;
+    const maxAttempts = 18; // 3 minutes max wait time (like working parser)
+    
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      attempts++;
+      
+      console.log(`⏳ Status check attempt ${attempts}/${maxAttempts}... (${Math.round(attempts/maxAttempts*100)}% of max wait time)`);
+      
+      try {
+        const statusResults = await this.checkUploadStatus(uuids);
+        const allReady = statusResults.every(result => result.state === 'READY');
+        
+        if (allReady) {
+          console.log('✅ All files processing completed');
+          return;
+        }
+        
+        // Check for errors
+        const errorResults = statusResults.filter(result => result.state === 'ERROR');
+        if (errorResults.length > 0) {
+          throw new Error(`Processing failed for ${errorResults.length} file(s)`);
+        }
+        
+        // Give user feedback during processing
+        if (attempts % 3 === 0) {
+          console.log(`💡 Still processing... This usually takes 1-3 minutes for complex PDFs`);
+        }
+        
+      } catch (statusError) {
+        console.error('Error during status check:', statusError);
+        // Don't break the loop for single status check failures in early attempts
+        if (attempts > maxAttempts * 0.8) {
+          // Only throw on status errors in the last 20% of attempts
+          throw statusError;
+        }
+      }
+    }
+    
+    throw new Error('Processing timeout - files took too long to process. Please try with simpler PDFs or check the API service status.');
+  }
+
 
 
 
@@ -257,7 +303,17 @@ export class ApiService {
     const uuid2 = uploadResult2[0].uuid;
     console.log('✅ API: Upload completed', { uuid1, uuid2 });
     
-    // Step 2: Convert PDFs to structured JSON data
+    // Step 2: Check if files need processing (for image-based PDFs)
+    const state1 = uploadResult1[0].state;
+    const state2 = uploadResult2[0].state;
+    
+    // Wait for processing if needed
+    if (state1 === 'PROCESSING' || state2 === 'PROCESSING') {
+      console.log('🔄 API: Files are processing, waiting for completion...');
+      await this.waitForProcessingCompletion([uuid1, uuid2]);
+    }
+    
+    // Step 3: Convert PDFs to structured JSON data
     console.log('🔄 API: Converting PDFs to JSON...');
     const [convertResult1, convertResult2] = await Promise.all([
       this.convertStatements([uuid1]),
@@ -396,19 +452,21 @@ export async function testAuthInParallel() {
     
     return { success: true, results: [result1, result2, result3, result4, result5] };
     
-  } catch (error) {
-    console.error('❌ Authentication test failed:', error);
-    
-    // Try to parse the error
-    try {
-      const parsed = JSON.parse(error.message);
-      console.error('📄 Parsed error:', parsed);
-      return { success: false, error: parsed };
-    } catch {
-      console.error('📄 Raw error message:', error.message);
-      return { success: false, error: error.message };
+      } catch (error: unknown) {
+      console.error('❌ Authentication test failed:', error);
+      
+      // Try to parse the error
+      try {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const parsed = JSON.parse(errorMessage);
+        console.error('📄 Parsed error:', parsed);
+        return { success: false, error: parsed };
+      } catch {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('📄 Raw error message:', errorMessage);
+        return { success: false, error: errorMessage };
+      }
     }
-  }
 }
 
 // Test function to try different auth header formats
@@ -438,8 +496,9 @@ export async function testDifferentAuthFormats() {
       } else {
         console.log(`❌ ${format.name} format failed:`, response.status);
       }
-    } catch (error) {
-      console.log(`❌ ${format.name} format error:`, error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log(`❌ ${format.name} format error:`, errorMessage);
     }
   }
   
@@ -466,16 +525,18 @@ export async function testUploadConvertFlow() {
     console.log('✅ Convert success:', convertResult);
     
     return { success: true, upload: uploadResult, convert: convertResult };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Upload-Convert test failed:', error);
     
     try {
-      const parsed = JSON.parse(error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const parsed = JSON.parse(errorMessage);
       console.error('📄 Parsed error:', parsed);
       return { success: false, error: parsed };
     } catch {
-      console.error('📄 Raw error:', error.message);
-      return { success: false, error: error.message };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('📄 Raw error:', errorMessage);
+      return { success: false, error: errorMessage };
     }
   }
 }
@@ -489,17 +550,19 @@ export async function testConvertEndpoint() {
     const result = await apiService.convertStatements(['test-uuid-12345']);
     console.log('✅ Convert test success:', result);
     return { success: true, result };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Convert test failed:', error);
     
     // Try to parse the error
     try {
-      const parsed = JSON.parse(error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const parsed = JSON.parse(errorMessage);
       console.error('📄 Parsed convert error:', parsed);
       return { success: false, error: parsed };
     } catch {
-      console.error('📄 Raw convert error:', error.message);
-      return { success: false, error: error.message };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('📄 Raw convert error:', errorMessage);
+      return { success: false, error: errorMessage };
     }
   }
 }
