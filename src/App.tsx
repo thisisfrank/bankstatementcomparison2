@@ -6,8 +6,12 @@ import PricingPage from './pages/PricingPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
 
-function Header({ isDark, onToggleDarkMode }: { isDark: boolean; onToggleDarkMode: () => void }) {
-  const [isSignedIn, setIsSignedIn] = useState(false);
+function Header({ isDark, onToggleDarkMode, isSignedIn, setIsSignedIn }: { 
+  isDark: boolean; 
+  onToggleDarkMode: () => void;
+  isSignedIn: boolean;
+  setIsSignedIn: (value: boolean) => void;
+}) {
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
@@ -127,6 +131,7 @@ function Header({ isDark, onToggleDarkMode }: { isDark: boolean; onToggleDarkMod
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
   return (
     <Router>
@@ -135,10 +140,15 @@ function App() {
           ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
           : 'bg-gradient-to-br from-blue-50 via-white to-green-50'
       }`}>
-        <Header isDark={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />
+        <Header 
+          isDark={isDarkMode} 
+          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          isSignedIn={isSignedIn}
+          setIsSignedIn={setIsSignedIn}
+        />
         
         <Routes>
-          <Route path="/" element={<HomePage isDark={isDarkMode} />} />
+          <Route path="/" element={<HomePage isDark={isDarkMode} isSignedIn={isSignedIn} />} />
           <Route path="/pricing" element={<PricingPage isDark={isDarkMode} />} />
           <Route path="/history" element={<HistoryPage isDark={isDarkMode} />} />
           <Route path="/settings" element={<SettingsPage isDark={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />} />

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Upload, FileText, CheckCircle, Edit, BarChart3, Download, Eye, TrendingUp, DollarSign, Home, Car, Utensils, ShoppingBag, Gamepad2, Heart, Briefcase, MoreHorizontal } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Edit, BarChart3, Download, Eye, Home, Car, Utensils, ShoppingBag, Gamepad2, Heart, Briefcase, MoreHorizontal } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useApiComparison } from '../hooks/useApiComparison';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorAlert } from '../components/ErrorAlert';
 
 interface FileUpload {
   file: File;
@@ -9,12 +12,8 @@ interface FileUpload {
   status: 'uploading' | 'ready' | 'error';
 }
 
-interface Transaction {
-  date: string;
-  description: string;
-  amount: number;
-  category: string;
-}
+// Import API types
+import { Transaction, apiService } from '../services/api';
 
 interface CategoryComparison {
   category: string;
@@ -29,6 +28,36 @@ interface CategoryComparison {
 
 const COLORS = ['#1E40AF', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE', '#EBF8FF', '#F0F9FF'];
 
+// Helper function to get category icons
+const getCategoryIcon = (category: string): React.ReactNode => {
+  const categoryLower = category.toLowerCase();
+  
+  if (categoryLower.includes('housing') || categoryLower.includes('rent') || categoryLower.includes('mortgage')) {
+    return <Home className="h-5 w-5" />;
+  }
+  if (categoryLower.includes('transport') || categoryLower.includes('gas') || categoryLower.includes('car') || categoryLower.includes('fuel')) {
+    return <Car className="h-5 w-5" />;
+  }
+  if (categoryLower.includes('food') || categoryLower.includes('dining') || categoryLower.includes('restaurant') || categoryLower.includes('grocery')) {
+    return <Utensils className="h-5 w-5" />;
+  }
+  if (categoryLower.includes('shopping') || categoryLower.includes('retail') || categoryLower.includes('store')) {
+    return <ShoppingBag className="h-5 w-5" />;
+  }
+  if (categoryLower.includes('entertainment') || categoryLower.includes('gaming') || categoryLower.includes('movie')) {
+    return <Gamepad2 className="h-5 w-5" />;
+  }
+  if (categoryLower.includes('health') || categoryLower.includes('medical') || categoryLower.includes('pharmacy')) {
+    return <Heart className="h-5 w-5" />;
+  }
+  if (categoryLower.includes('business') || categoryLower.includes('work') || categoryLower.includes('office')) {
+    return <Briefcase className="h-5 w-5" />;
+  }
+  
+  // Default icon
+  return <MoreHorizontal className="h-5 w-5" />;
+};
+
 const mockComparison: CategoryComparison[] = [
   {
     category: 'Housing',
@@ -38,10 +67,10 @@ const mockComparison: CategoryComparison[] = [
     difference: 0.00,
     percentChange: 0,
     transactions1: [
-      { date: '2024-01-01', description: 'Rent Payment', amount: 2450.00, category: 'Housing' }
+      { date: '2024-01-01', description: 'Rent Payment', amount: 2450.00, category: 'Housing', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2024-02-01', description: 'Rent Payment', amount: 2450.00, category: 'Housing' }
+      { date: '2024-02-01', description: 'Rent Payment', amount: 2450.00, category: 'Housing', type: 'debit' as const }
     ]
   },
   {
@@ -52,15 +81,15 @@ const mockComparison: CategoryComparison[] = [
     difference: 85.25,
     percentChange: 25.0,
     transactions1: [
-      { date: '2024-01-05', description: 'Gas Station', amount: 65.50, category: 'Transportation' },
-      { date: '2024-01-12', description: 'Gas Station', amount: 72.00, category: 'Transportation' },
-      { date: '2024-01-20', description: 'Car Insurance', amount: 203.00, category: 'Transportation' }
+      { date: '2024-01-05', description: 'Gas Station', amount: 65.50, category: 'Transportation', type: 'debit' as const },
+      { date: '2024-01-12', description: 'Gas Station', amount: 72.00, category: 'Transportation', type: 'debit' as const },
+      { date: '2024-01-20', description: 'Car Insurance', amount: 203.00, category: 'Transportation', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2024-02-03', description: 'Gas Station', amount: 68.25, category: 'Transportation' },
-      { date: '2024-02-10', description: 'Gas Station', amount: 74.50, category: 'Transportation' },
-      { date: '2024-02-18', description: 'Car Insurance', amount: 203.00, category: 'Transportation' },
-      { date: '2024-02-25', description: 'Car Repair', amount: 80.00, category: 'Transportation' }
+      { date: '2024-02-03', description: 'Gas Station', amount: 68.25, category: 'Transportation', type: 'debit' as const },
+      { date: '2024-02-10', description: 'Gas Station', amount: 74.50, category: 'Transportation', type: 'debit' as const },
+      { date: '2024-02-18', description: 'Car Insurance', amount: 203.00, category: 'Transportation', type: 'debit' as const },
+      { date: '2024-02-25', description: 'Car Repair', amount: 80.00, category: 'Transportation', type: 'debit' as const }
     ]
   },
   {
@@ -71,17 +100,17 @@ const mockComparison: CategoryComparison[] = [
     difference: -159.85,
     percentChange: -23.5,
     transactions1: [
-      { date: '2024-01-03', description: 'Grocery Store', amount: 125.50, category: 'Food & Dining' },
-      { date: '2024-01-08', description: 'Restaurant', amount: 45.75, category: 'Food & Dining' },
-      { date: '2024-01-15', description: 'Grocery Store', amount: 98.25, category: 'Food & Dining' },
-      { date: '2024-01-22', description: 'Coffee Shop', amount: 28.50, category: 'Food & Dining' },
-      { date: '2024-01-28', description: 'Takeout', amount: 35.75, category: 'Food & Dining' }
+      { date: '2024-01-03', description: 'Grocery Store', amount: 125.50, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2024-01-08', description: 'Restaurant', amount: 45.75, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2024-01-15', description: 'Grocery Store', amount: 98.25, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2024-01-22', description: 'Coffee Shop', amount: 28.50, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2024-01-28', description: 'Takeout', amount: 35.75, category: 'Food & Dining', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2024-02-02', description: 'Grocery Store', amount: 110.25, category: 'Food & Dining' },
-      { date: '2024-02-09', description: 'Restaurant', amount: 52.30, category: 'Food & Dining' },
-      { date: '2024-02-16', description: 'Grocery Store', amount: 89.40, category: 'Food & Dining' },
-      { date: '2024-02-23', description: 'Coffee Shop', amount: 22.75, category: 'Food & Dining' }
+      { date: '2024-02-02', description: 'Grocery Store', amount: 110.25, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2024-02-09', description: 'Restaurant', amount: 52.30, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2024-02-16', description: 'Grocery Store', amount: 89.40, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2024-02-23', description: 'Coffee Shop', amount: 22.75, category: 'Food & Dining', type: 'debit' as const }
     ]
   }
 ];
@@ -90,15 +119,21 @@ function FileUploadZone({
   title, 
   onFileSelect, 
   uploadedFile, 
-  isDark 
+  isDark,
+  isSignedIn 
 }: { 
   title: string; 
   onFileSelect: (file: File) => void; 
   uploadedFile?: FileUpload; 
-  isDark: boolean; 
+  isDark: boolean;
+  isSignedIn: boolean; 
 }) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    if (!isSignedIn) {
+      onFileSelect(new File([], '')); // Trigger preview button glow
+      return;
+    }
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0 && files[0].type === 'application/pdf') {
       onFileSelect(files[0]);
@@ -106,6 +141,10 @@ function FileUploadZone({
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isSignedIn) {
+      onFileSelect(new File([], '')); // Trigger preview button glow
+      return;
+    }
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       onFileSelect(files[0]);
@@ -125,11 +164,31 @@ function FileUploadZone({
         }`}>
           {uploadedFile.name}
         </h3>
-        <p className={`text-sm ${
+        <p className={`text-sm mb-4 ${
           isDark ? 'text-gray-400' : 'text-gray-600'
         }`}>
           Ready for comparison
         </p>
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={handleFileInput}
+          className="hidden"
+          id={`file-${title.replace(/\s+/g, '-').toLowerCase()}-uploaded`}
+          disabled={!isSignedIn}
+        />
+        <label
+          htmlFor={isSignedIn ? `file-${title.replace(/\s+/g, '-').toLowerCase()}-uploaded` : undefined}
+          onClick={!isSignedIn ? () => onFileSelect(new File([], '')) : undefined}
+          className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+            isSignedIn 
+              ? `cursor-pointer ${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`
+              : `cursor-pointer ${isDark ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-400 hover:bg-gray-500 text-gray-600'}`
+          }`}
+        >
+          <FileText className="h-4 w-4" />
+          Change File
+        </label>
       </div>
     );
   }
@@ -138,10 +197,15 @@ function FileUploadZone({
     <div
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
+      onClick={!isSignedIn ? () => onFileSelect(new File([], '')) : undefined}
       className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-        isDark 
-          ? 'border-gray-600 hover:border-blue-500 bg-gray-800/50 hover:bg-gray-800' 
-          : 'border-gray-300 hover:border-blue-500 bg-gray-50 hover:bg-gray-100'
+        isSignedIn 
+          ? (isDark 
+              ? 'border-gray-600 hover:border-blue-500 bg-gray-800/50 hover:bg-gray-800' 
+              : 'border-gray-300 hover:border-blue-500 bg-gray-50 hover:bg-gray-100')
+          : (isDark 
+              ? 'border-gray-700 hover:border-gray-600 bg-gray-800/30 opacity-60' 
+              : 'border-gray-200 hover:border-gray-300 bg-gray-25 opacity-60')
       }`}
     >
       <Upload className={`h-12 w-12 mx-auto mb-4 ${
@@ -163,13 +227,15 @@ function FileUploadZone({
         onChange={handleFileInput}
         className="hidden"
         id={`file-${title.replace(/\s+/g, '-').toLowerCase()}`}
+        disabled={!isSignedIn}
       />
       <label
-        htmlFor={`file-${title.replace(/\s+/g, '-').toLowerCase()}`}
-        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer ${
-          isDark 
-            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        htmlFor={isSignedIn ? `file-${title.replace(/\s+/g, '-').toLowerCase()}` : undefined}
+        onClick={!isSignedIn ? () => onFileSelect(new File([], '')) : undefined}
+        className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+          isSignedIn 
+            ? `cursor-pointer ${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`
+            : `cursor-pointer ${isDark ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-400 hover:bg-gray-500 text-gray-600'}`
         }`}
       >
         <FileText className="h-4 w-4" />
@@ -179,7 +245,7 @@ function FileUploadZone({
   );
 }
 
-export default function HomePage({ isDark }: { isDark: boolean }) {
+export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSignedIn: boolean }) {
   const location = useLocation();
   const [uploadedFiles, setUploadedFiles] = useState<{
     statement1?: FileUpload;
@@ -191,11 +257,47 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
   });
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(location.state?.showResults || false);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [chartView, setChartView] = useState<'bar-expenses' | 'bar-income' | 'graph-expenses' | 'graph-income'>('bar-expenses');
+  const [previewButtonGlowing, setPreviewButtonGlowing] = useState(false);
+
+  // API integration
+  const {
+    isLoading: apiLoading,
+    error: apiError,
+    result: apiResult,
+    progress: apiProgress,
+    compareStatements,
+    clearError,
+    useMockData
+  } = useApiComparison();
 
   const handleFileUpload = (statementKey: 'statement1' | 'statement2', file: File) => {
+    // If user is not signed in OR this is an empty file for preview trigger, just set preview glow
+    if (!isSignedIn || file.size === 0 || file.name === '') {
+      setPreviewButtonGlowing(true);
+      return;
+    }
+
+    // Clear any previous errors
+    clearError();
+
+    // Validate real file uploads
+    const validation = apiService.validatePdfFile(file);
+    if (!validation.isValid) {
+      // Set a temporary error state for this file
+      setUploadedFiles(prev => ({
+        ...prev,
+        [statementKey]: {
+          file,
+          name: file.name,
+          status: 'error'
+        }
+      }));
+      return;
+    }
+
     const fileUpload: FileUpload = {
       file,
       name: file.name,
@@ -216,13 +318,36 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
     }, 1500);
   };
 
-  const handleGenerateComparison = () => {
-    setShowResults(true);
+  const handleGenerateComparison = async () => {
+    if (isSignedIn && uploadedFiles.statement1?.file && uploadedFiles.statement2?.file && 
+        uploadedFiles.statement1.file.size > 0 && uploadedFiles.statement2.file.size > 0) {
+      // For signed in users with real files, use API
+      try {
+        await compareStatements(
+          uploadedFiles.statement1.file, 
+          uploadedFiles.statement2.file,
+          'user123' // TODO: Replace with actual user ID from auth
+        );
+        setShowResults(true);
+      } catch (error) {
+        // Error is handled by the hook
+        console.error('Comparison failed:', error);
+      }
+    } else if (isSignedIn) {
+      // Signed in but no real files - use mock data
+      useMockData();
+      setShowResults(true);
+    } else {
+      // For signed out users, show preview with sign-in prompt
+      handleUseSampleData();
+      setShowResults(true);
+    }
   };
 
   const handleUseSampleData = () => {
-    const statement1Name = location.state?.statement1Name || '053125 WellsFargo (2).pdf';
-    const statement2Name = location.state?.statement2Name || '063025 WellsFargo.pdf';
+    // Use actual filenames from history, or simple labels for preview
+    const statement1Name = location.state?.statement1Name || (isSignedIn ? '053125 WellsFargo (2).pdf' : 'Statement 1');
+    const statement2Name = location.state?.statement2Name || (isSignedIn ? '063025 WellsFargo.pdf' : 'Statement 2');
     
     setStatementLabels({
       statement1: statement1Name,
@@ -271,20 +396,32 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
     }
   }, [location.state]);
 
-  const chartData = mockComparison.map(item => ({
+  // Use API data if available, otherwise fall back to mock data
+  const displayData = apiResult?.comparison.map(item => ({
+    category: item.category,
+    icon: getCategoryIcon(item.category), // We'll need to create this function
+    statement1: item.statement1Total,
+    statement2: item.statement2Total,
+    difference: item.difference,
+    percentChange: item.percentChange,
+    transactions1: item.transactions1,
+    transactions2: item.transactions2
+  })) || mockComparison;
+
+  const chartData = displayData.map(item => ({
     category: item.category,
     statement1: item.statement1,
     statement2: item.statement2,
     difference: Math.abs(item.difference)
   }));
 
-  const pieData = mockComparison.map((item, index) => ({
+  const pieData = displayData.map((item, index) => ({
     name: item.category,
     value: item.statement1,
     color: COLORS[index % COLORS.length]
   }));
 
-  const pieDataStatement2 = mockComparison.map((item, index) => ({
+  const pieDataStatement2 = displayData.map((item, index) => ({
     name: item.category,
     value: item.statement2,
     color: COLORS[index % COLORS.length]
@@ -347,7 +484,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
             /* Post-Upload Interface */
             <div className="space-y-8">
               {/* Uploaded Files Display */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     {editingLabel === 'statement1' ? (
@@ -387,11 +524,36 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                     }`}>
                       {uploadedFiles.statement1?.name}
                     </h4>
-                    <p className={`text-sm ${
+                    <p className={`text-sm mb-4 ${
                       isDark ? 'text-gray-400' : 'text-gray-600'
                     }`}>
                       Ready for comparison
                     </p>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length > 0) {
+                          handleFileUpload('statement1', files[0]);
+                        }
+                      }}
+                      className="hidden"
+                      id="file-statement1-uploaded-post"
+                      disabled={!isSignedIn}
+                    />
+                    <label
+                      htmlFor={isSignedIn ? "file-statement1-uploaded-post" : undefined}
+                      onClick={!isSignedIn ? () => handleFileUpload('statement1', new File([], '')) : undefined}
+                      className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+                        isSignedIn 
+                          ? `cursor-pointer ${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`
+                          : `cursor-pointer ${isDark ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-400 hover:bg-gray-500 text-gray-600'}`
+                      }`}
+                    >
+                      <FileText className="h-4 w-4" />
+                      Change File
+                    </label>
                   </div>
                 </div>
 
@@ -434,33 +596,64 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                     }`}>
                       {uploadedFiles.statement2?.name}
                     </h4>
-                    <p className={`text-sm ${
+                    <p className={`text-sm mb-4 ${
                       isDark ? 'text-gray-400' : 'text-gray-600'
                     }`}>
                       Ready for comparison
                     </p>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length > 0) {
+                          handleFileUpload('statement2', files[0]);
+                        }
+                      }}
+                      className="hidden"
+                      id="file-statement2-uploaded-post"
+                      disabled={!isSignedIn}
+                    />
+                    <label
+                      htmlFor={isSignedIn ? "file-statement2-uploaded-post" : undefined}
+                      onClick={!isSignedIn ? () => handleFileUpload('statement2', new File([], '')) : undefined}
+                      className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+                        isSignedIn 
+                          ? `cursor-pointer ${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`
+                          : `cursor-pointer ${isDark ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-400 hover:bg-gray-500 text-gray-600'}`
+                      }`}
+                    >
+                      <FileText className="h-4 w-4" />
+                      Change File
+                    </label>
                   </div>
                 </div>
               </div>
 
               {/* Generate Comparison Button */}
-              <div className="text-center">
+              <div className="text-center mb-12">
                 <button
                   onClick={handleGenerateComparison}
-                  className={`px-8 py-4 rounded-xl text-lg font-semibold transition-colors ${
+                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
                     isDark 
                       ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                       : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
+                  } ${previewButtonGlowing && !isSignedIn ? 'animate-pulse ring-4 ring-blue-300' : ''}`}
                 >
-                  Generate Comparison
+                  <Eye className="h-5 w-5" />
+                  {isSignedIn ? 'Generate Results' : 'Preview Results'}
                 </button>
-                <p className={`mt-3 text-sm ${
-                  isDark ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  This will process all categories and charge based on pages processed
-                </p>
+                {isSignedIn && (
+                  <p className={`mt-3 text-sm ${
+                    isDark ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    This will process all categories and charge based on pages processed
+                  </p>
+                )}
               </div>
+
+              {/* Additional spacing */}
+              <div className="mb-16"></div>
             </div>
           ) : (
             /* File Upload Interface */
@@ -500,6 +693,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                     onFileSelect={(file) => handleFileUpload('statement1', file)}
                     uploadedFile={uploadedFiles.statement1}
                     isDark={isDark}
+                    isSignedIn={isSignedIn}
                   />
                 </div>
                 
@@ -536,6 +730,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                     onFileSelect={(file) => handleFileUpload('statement2', file)}
                     uploadedFile={uploadedFiles.statement2}
                     isDark={isDark}
+                    isSignedIn={isSignedIn}
                   />
                 </div>
               </div>
@@ -546,12 +741,12 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                   onClick={handleUseSampleData}
                   className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
                     isDark 
-                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' 
-                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                  }`}
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  } ${previewButtonGlowing && !isSignedIn ? 'animate-pulse ring-4 ring-blue-300' : ''}`}
                 >
                   <Eye className="h-5 w-5" />
-                  Preview Results
+                  {isSignedIn ? 'Generate Results' : 'Preview Results'}
                 </button>
               </div>
 
@@ -575,7 +770,63 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
             }`}>
               Comparing {statementLabels.statement1} vs {statementLabels.statement2}
             </p>
+            
+            {/* Sign-in Overlay for Signed Out Users */}
+            {!isSignedIn && (
+              <div className={`mt-6 p-6 rounded-xl border-2 border-dashed ${
+                isDark 
+                  ? 'bg-blue-900/20 border-blue-600' 
+                  : 'bg-blue-50 border-blue-500'
+              }`}>
+                <h3 className={`text-xl font-semibold mb-2 ${
+                  isDark ? 'text-blue-400' : 'text-blue-600'
+                }`}>
+                  Sign in for your free comparison
+                </h3>
+                <p className={`text-sm mb-4 ${
+                  isDark ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  This is a preview with sample data. Sign up to analyze your real bank statements.
+                </p>
+                <button className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                  isDark 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}>
+                  Sign Up - Free Tier Available
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Loading State */}
+          {apiLoading && (
+            <div className={`rounded-xl p-8 text-center ${
+              isDark ? 'bg-gray-800' : 'bg-white'
+            } shadow-lg`}>
+              <LoadingSpinner 
+                size="lg" 
+                text="Processing your bank statements..." 
+                progress={apiProgress}
+                isDark={isDark}
+              />
+            </div>
+          )}
+
+          {/* Error State */}
+          {apiError && (
+            <ErrorAlert 
+              error={apiError}
+              onDismiss={clearError}
+              onRetry={() => {
+                if (uploadedFiles.statement1?.file && uploadedFiles.statement2?.file) {
+                  handleGenerateComparison();
+                }
+              }}
+              isDark={isDark}
+              className="mb-6"
+            />
+          )}
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -594,7 +845,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                     Withdrawals
                   </span>
                   <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                    $3,470.75
+                    ${apiResult?.statement1.summary.totalWithdrawals.toFixed(2) || '3,470.75'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -602,7 +853,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                     Deposits
                   </span>
                   <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                    $4,250.00
+                    ${apiResult?.statement1.summary.totalDeposits.toFixed(2) || '4,250.00'}
                   </span>
                 </div>
               </div>
@@ -623,7 +874,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                     Withdrawals
                   </span>
                   <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                    $3,396.15
+                    ${apiResult?.statement2.summary.totalWithdrawals.toFixed(2) || '3,396.15'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -631,7 +882,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                     Deposits
                   </span>
                   <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                    $4,250.00
+                    ${apiResult?.statement2.summary.totalDeposits.toFixed(2) || '4,250.00'}
                   </span>
                 </div>
               </div>
@@ -715,7 +966,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                           outerRadius={120}
                           fill="#8884d8"
                           dataKey="value"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                         >
                           {(chartView === 'graph-expenses' ? pieData : pieDataIncome).map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -748,7 +999,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
                           outerRadius={120}
                           fill="#8884d8"
                           dataKey="value"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                         >
                           {(chartView === 'graph-expenses' ? pieDataStatement2 : pieDataIncomeStatement2).map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -779,7 +1030,7 @@ export default function HomePage({ isDark }: { isDark: boolean }) {
               Category Breakdown
             </h3>
             
-            {mockComparison.map((category, index) => (
+            {displayData.map((category) => (
               <div
                 key={category.category}
                 className={`rounded-xl p-6 shadow-lg border transition-all ${
