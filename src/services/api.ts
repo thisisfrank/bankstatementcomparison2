@@ -307,9 +307,31 @@ export class ApiService {
     const state1 = uploadResult1[0].state;
     const state2 = uploadResult2[0].state;
     
+    console.log('📊 API: File states after upload:', { 
+      file1: { uuid: uuid1, state: state1 }, 
+      file2: { uuid: uuid2, state: state2 } 
+    });
+    
     // Wait for processing if needed
     if (state1 === 'PROCESSING' || state2 === 'PROCESSING') {
       console.log('🔄 API: Files are processing, waiting for completion...');
+      await this.waitForProcessingCompletion([uuid1, uuid2]);
+    } else {
+      console.log('✅ API: Both files are ready for conversion (no processing needed)');
+    }
+    
+    // Step 2.5: Double-check status before conversion (robust approach)
+    console.log('🔍 API: Final status check before conversion...');
+    const finalStatusResults = await this.checkUploadStatus([uuid1, uuid2]);
+    const finalStates = finalStatusResults.map(r => r.state);
+    console.log('📊 API: Final file states before conversion:', { 
+      file1: { uuid: uuid1, state: finalStates[0] }, 
+      file2: { uuid: uuid2, state: finalStates[1] } 
+    });
+    
+    // If any files are still processing, wait again
+    if (finalStates.includes('PROCESSING')) {
+      console.log('🔄 API: Files still processing after initial wait, extending wait time...');
       await this.waitForProcessingCompletion([uuid1, uuid2]);
     }
     

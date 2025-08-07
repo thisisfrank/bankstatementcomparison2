@@ -313,21 +313,13 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     const fileUpload: FileUpload = {
       file,
       name: file.name,
-      status: 'uploading'
+      status: 'ready' // Mark as ready immediately - real processing happens during API call
     };
 
     setUploadedFiles(prev => ({
       ...prev,
       [statementKey]: fileUpload
     }));
-
-    // Simulate processing
-    setTimeout(() => {
-      setUploadedFiles(prev => ({
-        ...prev,
-        [statementKey]: { ...fileUpload, status: 'ready' }
-      }));
-    }, 1500);
   };
 
   const handleGenerateComparison = async () => {
@@ -670,9 +662,9 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
               <div className="text-center mb-12">
                 <button
                   onClick={handleGenerateComparison}
-                  disabled={apiLoading}
+                  disabled={apiLoading || (isSignedIn && !bothFilesUploaded)}
                   className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-                    apiLoading
+                    apiLoading || (isSignedIn && !bothFilesUploaded)
                       ? isDark ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-400 text-gray-600 cursor-not-allowed'
                       : isDark 
                         ? 'bg-blue-600 hover:bg-blue-700 text-white' 
@@ -682,13 +674,18 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
                   <Eye className="h-5 w-5" />
                   {apiLoading 
                     ? 'Processing...' 
-                    : isSignedIn ? 'Generate Results' : 'Preview Results'}
+                    : (isSignedIn && !bothFilesUploaded)
+                      ? 'Waiting for files...'
+                      : isSignedIn ? 'Generate Results' : 'Preview Results'}
                 </button>
                 {isSignedIn && (
                   <p className={`mt-3 text-sm ${
                     isDark ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    This will process all categories and charge based on pages processed
+                    {!bothFilesUploaded 
+                      ? 'Please upload both statement files to continue'
+                      : 'This will process all categories and charge based on pages processed'
+                    }
                   </p>
                 )}
               </div>
