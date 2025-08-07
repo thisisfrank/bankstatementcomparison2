@@ -63,7 +63,13 @@ export function testFileValidation() {
   };
 }
 
+// Import comprehensive test
+import { testApiUploadWithRealFile, testDifferentApiUrls } from './test-api-upload';
+
+// Export all test functions
+export { testApiUploadWithRealFile, testDifferentApiUrls };
+
 // Usage example:
-// import { testApiIntegration, testFileValidation } from './services/test-api';
+// import { testApiIntegration, testFileValidation, testApiUploadWithRealFile } from './services/test-api';
 // testApiIntegration().then(result => console.log(result));
-// testFileValidation();
+// testApiUploadWithRealFile().then(result => console.log(result));
