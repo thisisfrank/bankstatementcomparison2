@@ -6,9 +6,8 @@ import PricingPage from './pages/PricingPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
 
-function Header({ isDark, onToggleDarkMode, isSignedIn, setIsSignedIn }: { 
+function Header({ isDark, isSignedIn, setIsSignedIn }: { 
   isDark: boolean; 
-  onToggleDarkMode: () => void;
   isSignedIn: boolean;
   setIsSignedIn: (value: boolean) => void;
 }) {
@@ -71,21 +70,23 @@ function Header({ isDark, onToggleDarkMode, isSignedIn, setIsSignedIn }: {
                 </Link>
               </>
             ) : (
-              <Link
-                to="/pricing"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                  isActive('/pricing')
-                    ? isDark
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-blue-600 text-white'
-                    : isDark 
-                      ? 'text-gray-300 hover:text-white hover:bg-gray-800' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                <PricingIcon className="h-4 w-4" />
-                Pricing
-              </Link>
+              <>
+                <Link
+                  to="/pricing"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    isActive('/pricing')
+                      ? isDark
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-blue-600 text-white'
+                      : isDark 
+                        ? 'text-gray-300 hover:text-white hover:bg-gray-800' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <PricingIcon className="h-4 w-4" />
+                  Pricing
+                </Link>
+              </>
             )}
 
             {/* Sign In/Out Button */}
@@ -142,7 +143,6 @@ function App() {
       }`}>
         <Header 
           isDark={isDarkMode} 
-          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
           isSignedIn={isSignedIn}
           setIsSignedIn={setIsSignedIn}
         />

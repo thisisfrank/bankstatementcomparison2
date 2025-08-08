@@ -1,5 +1,5 @@
 // API Service for PDF Parsing and Bank Statement Analysis
-// Simplified to match Version 1's working approach
+// Implementation based on API Documentation (APi doc.md)
 
 // Bank Statement Converter API Types
 export interface BankStatementUploadResponse {
@@ -47,33 +47,35 @@ export interface UserCreditsResponse {
 }
 
 // Import shared types
-import { ApiError, ParsedStatement } from '../types';
+import { createApiError } from '../types/errors';
 
-// API Configuration
+// API Configuration - Based on API Documentation
+const API_KEY = import.meta.env.VITE_PDF_PARSER_API_KEY || 'api-AB7psQuumDdjVHLTPYMDghH2xUgaKcuJZVvwReMMsxM9iQBaYJg/BrelRUX07neH';
 const API_BASE_URL = import.meta.env.VITE_PDF_PARSER_API_URL || 'https://api2.bankstatementconverter.com/api/v1';
-const API_KEY = import.meta.env.VITE_PDF_PARSER_API_KEY;
 
-// Fixed API Service - Simplified to match Version 1's working approach
+// API Service - Implementation following bankstatementconverter.com API Documentation
 export class ApiService {
   private async makeRequest<T>(
     endpoint: string, 
     options: RequestInit = {}
   ): Promise<T> {
     if (!API_KEY) {
-      throw new Error(JSON.stringify({
-        error: 'API key not configured',
-        code: 'CONFIG_ERROR',
-        details: 'Please set VITE_PDF_PARSER_API_KEY in your environment'
-      }));
+      throw new Error(JSON.stringify(createApiError('CONFIG_ERROR', 'Please set VITE_PDF_PARSER_API_KEY in your environment')));
     }
 
     const url = `${API_BASE_URL}${endpoint}`;
     
-    // SIMPLIFIED: Use same approach as Version 1
+    // Based on API Documentation: Direct API key as Authorization header
     const fullHeaders = {
-      'Authorization': API_KEY, // Direct API key, no Bearer prefix
+      'Authorization': API_KEY, // As documented: Authorization: api-AB7psQuu...
       ...options.headers,
     };
+    
+    // DEBUG: Log the exact authorization header being sent
+    console.log('🔑 Authorization header:', {
+      authHeaderValue: API_KEY.substring(0, 20) + '...',
+      fullHeaderLength: API_KEY.length
+    });
     
     // REDUCED LOGGING: Minimal logging to avoid interference
     console.log('🔑 API Request:', {
@@ -99,11 +101,7 @@ export class ApiService {
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          errorData = {
-            error: `HTTP ${response.status}: ${response.statusText}`,
-            code: 'HTTP_ERROR',
-            details: errorText
-          };
+          errorData = createApiError('HTTP_ERROR', `HTTP ${response.status}: ${response.statusText} - ${errorText}`);
         }
         
         throw new Error(JSON.stringify(errorData));
@@ -117,30 +115,30 @@ export class ApiService {
       }
       
       // Handle network/parsing errors simply
-      throw new Error(JSON.stringify({
-        error: 'Network or connection error',
-        code: 'NETWORK_ERROR',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }));
+      throw new Error(JSON.stringify(createApiError('NETWORK_ERROR', error instanceof Error ? error.message : 'Unknown error')));
     }
   }
 
-  // SIMPLIFIED: Remove complex processing logic, focus on basic API calls
+  // Upload PDF files - Based on API Documentation: Multipart Form Data
   async uploadBankStatement(file: File): Promise<BankStatementUploadResponse[]> {
     const formData = new FormData();
     formData.append('file', file);
 
     console.log('📤 Uploading file:', file.name, file.size);
     
+    // API Documentation: POST /BankStatement with multipart form data
     return this.makeRequest<BankStatementUploadResponse[]>('/BankStatement', {
       method: 'POST',
       body: formData,
+      // Note: Don't set Content-Type header - let browser set it with boundary for multipart
     });
   }
 
+  // Check upload status - API Documentation: POST /BankStatement/status with UUID array
   async checkUploadStatus(uuids: string[]): Promise<BankStatementStatusResponse[]> {
     console.log('🔍 Checking status for:', uuids);
     
+    // API Documentation: Body is a list of UUID strings in JSON
     return this.makeRequest<BankStatementStatusResponse[]>('/BankStatement/status', {
       method: 'POST',
       body: JSON.stringify(uuids),
@@ -150,9 +148,11 @@ export class ApiService {
     });
   }
 
+  // Convert statements - API Documentation: POST /BankStatement/convert?format=JSON
   async convertStatements(uuids: string[]): Promise<BankStatementConvertResponse[]> {
     console.log('🔄 Converting statements:', uuids);
     
+    // API Documentation: Body is a list of UUID strings in JSON
     return this.makeRequest<BankStatementConvertResponse[]>('/BankStatement/convert?format=JSON', {
       method: 'POST',
       body: JSON.stringify(uuids),
@@ -162,29 +162,31 @@ export class ApiService {
     });
   }
 
-  // QUICK TEST: Simple method to test API connectivity
-  async testConnection(): Promise<{ success: boolean; error?: string }> {
-    try {
-      await this.getUserCredits();
-      return { success: true };
-    } catch (error: any) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      try {
-        const parsed = JSON.parse(errorMsg);
-        return { success: false, error: parsed.error || parsed.details || 'API test failed' };
-      } catch {
-        return { success: false, error: errorMsg };
-      }
-    }
+  // Add password for protected PDFs - API Documentation: POST /BankStatement/setPassword
+  async setPassword(passwords: Array<{ uuid: string; password: string }>): Promise<BankStatementUploadResponse[]> {
+    console.log('🔑 Setting passwords for PDFs');
+    
+    // API Documentation: Body contains passwords array
+    return this.makeRequest<BankStatementUploadResponse[]>('/BankStatement/setPassword', {
+      method: 'POST',
+      body: JSON.stringify({ passwords }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
+
+
+  // Get user credits - API Documentation: GET /user
   async getUserCredits(): Promise<UserCreditsResponse> {
+    // API Documentation: GET request with Authorization header
     return this.makeRequest<UserCreditsResponse>('/user', {
       method: 'GET',
     });
   }
 
-  // SIMPLIFIED: Basic version that mimics Version 1's success pattern
+  // Process two bank statements - Following API Documentation workflow
   async processTwoStatements(
     file1: File,
     file2: File
@@ -194,9 +196,9 @@ export class ApiService {
     file1Name: string;
     file2Name: string;
   }> {
-    console.log('📤 Processing two statements (simplified approach)');
+    console.log('📤 Processing two statements following API documentation');
     
-    // Step 1: Upload both files
+    // Step 1: Upload both files (API Documentation: POST /BankStatement)
     const [uploadResult1, uploadResult2] = await Promise.all([
       this.uploadBankStatement(file1),
       this.uploadBankStatement(file2)
@@ -206,14 +208,11 @@ export class ApiService {
     const uuid2 = uploadResult2[0].uuid;
     console.log('✅ Uploaded with UUIDs:', { uuid1, uuid2 });
     
-    // Step 2: Wait a bit if processing needed (simplified)
-    const needsProcessing = uploadResult1[0].state === 'PROCESSING' || uploadResult2[0].state === 'PROCESSING';
-    if (needsProcessing) {
-      console.log('⏳ Files processing, waiting 30 seconds...');
-      await new Promise(resolve => setTimeout(resolve, 30000));
-    }
+    // Step 2: Handle processing state (API Documentation: Poll every 10 seconds if PROCESSING)
+    const uuids = [uuid1, uuid2];
+    await this.waitForProcessingComplete(uuids);
     
-    // Step 3: Convert directly (like Version 1)
+    // Step 3: Convert statements (API Documentation: POST /BankStatement/convert?format=JSON)
     const [convertResult1, convertResult2] = await Promise.all([
       this.convertStatements([uuid1]),
       this.convertStatements([uuid2])
@@ -229,6 +228,29 @@ export class ApiService {
     };
   }
 
+  // Wait for processing to complete - API Documentation: Poll status every 10 seconds
+  private async waitForProcessingComplete(uuids: string[], maxAttempts: number = 30): Promise<void> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const statusResults = await this.checkUploadStatus(uuids);
+      const allReady = statusResults.every(result => result.state === 'READY');
+      
+      if (allReady) {
+        console.log('✅ All files ready for conversion');
+        return;
+      }
+      
+      const hasError = statusResults.some(result => result.state === 'ERROR');
+      if (hasError) {
+        throw new Error('PDF processing failed');
+      }
+      
+      console.log(`⏳ Files still processing, waiting 10 seconds... (attempt ${attempt + 1}/${maxAttempts})`);
+      await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds as per API docs
+    }
+    
+    throw new Error('PDF processing timed out');
+  }
+
   validatePdfFile(file: File): { isValid: boolean; error?: string } {
     if (file.type !== 'application/pdf') {
       return { isValid: false, error: 'Please upload a PDF file' };
@@ -239,31 +261,16 @@ export class ApiService {
     return { isValid: true };
   }
 
-  async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    try {
-      await this.getUserCredits();
-      return { status: 'ok', timestamp: new Date().toISOString() };
-    } catch (error) {
-      throw new Error(JSON.stringify({
-        error: 'API health check failed',
-        code: 'HEALTH_CHECK_FAILED',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }));
-    }
-  }
+
 }
 
 export const apiService = new ApiService();
 
 // Helper function to parse API errors
-export function parseApiError(error: string): ApiError {
+export function parseApiError(error: string) {
   try {
     return JSON.parse(error);
   } catch {
-    return {
-      error: 'Unknown error',
-      code: 'PARSE_ERROR',
-      details: error
-    };
+    return createApiError('UNKNOWN_ERROR', error);
   }
 }

@@ -44,11 +44,7 @@ export interface ComparisonResult {
   }[];
 }
 
-export interface ApiError {
-  error: string;
-  code: string;
-  details?: string;
-}
+
 
 // Bank Statement API Types
 export interface BankStatementTransaction {
