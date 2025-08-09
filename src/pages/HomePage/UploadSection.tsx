@@ -349,7 +349,7 @@ export default function UploadSection({
               isDark ? 'text-gray-400' : 'text-gray-600'
             }`}>
               {!bothFilesUploaded 
-                ? 'Please upload both statement files to continue'
+                ? 'Upload both bank statement files above to begin your comparison'
                 : 'This will process all categories and charge based on pages processed'
               }
             </p>
@@ -442,22 +442,22 @@ export default function UploadSection({
         </div>
       </div>
 
-      {/* Sample Data Button */}
-      <div className="text-center mb-12">
-        <button
-          onClick={onUseSampleData}
-          className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-            isDark 
-              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
-          } ${previewButtonGlowing && !isSignedIn ? 'animate-pulse ring-4 ring-blue-300' : ''}`}
-        >
-          <Eye className="h-5 w-5" />
-          {apiLoading 
-            ? 'Processing...' 
-            : isSignedIn ? 'Generate Results' : 'Preview Results'}
-        </button>
-      </div>
+      {/* Sample Data Button - Only for signed out users */}
+      {!isSignedIn && (
+        <div className="text-center mb-12">
+          <button
+            onClick={onUseSampleData}
+            className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+              isDark 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            } ${previewButtonGlowing ? 'animate-pulse ring-4 ring-blue-300' : ''}`}
+          >
+            <Eye className="h-5 w-5" />
+            {apiLoading ? 'Processing...' : 'Preview Results'}
+          </button>
+        </div>
+      )}
 
       {/* Additional spacing */}
       <div className="mb-16"></div>

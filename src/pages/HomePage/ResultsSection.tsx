@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FileText, Download, BarChart3, Home, Car, Utensils, ShoppingBag, Gamepad2, Heart, Briefcase, MoreHorizontal } from 'lucide-react';
 import { CategoryComparison } from './index';
 
@@ -146,13 +147,16 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
             }`}>
               This is a preview with sample data. Sign up to analyze your real bank statements.
             </p>
-            <button className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-              isDark 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}>
+            <Link 
+              to="/pricing"
+              className={`inline-block px-6 py-3 rounded-lg font-medium transition-colors ${
+                isDark 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
               Sign Up - Free Tier Available
-            </button>
+            </Link>
           </div>
         )}
       </div>
@@ -349,30 +353,48 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
       {/* Export Options */}
       <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
         <div className="flex gap-4 w-full">
-          <button className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-            isDark 
-              ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-              : 'bg-orange-600 hover:bg-orange-700 text-white'
-          }`}>
+          <button 
+            disabled={!isSignedIn}
+            className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+              isSignedIn
+                ? isDark 
+                  ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                  : 'bg-orange-600 hover:bg-orange-700 text-white'
+                : isDark
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}>
             <Download className="h-5 w-5" />
             Export PDF Report
           </button>
           
-          <button className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-            isDark 
-              ? 'bg-green-600 hover:bg-green-700 text-white' 
-              : 'bg-green-600 hover:bg-green-700 text-white'
-          }`}>
+          <button 
+            disabled={!isSignedIn}
+            className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+              isSignedIn
+                ? isDark 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+                : isDark
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}>
             <Download className="h-5 w-5" />
             Export CSV Data
           </button>
         </div>
         
-        <button className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-          isDark 
-            ? 'bg-red-600 hover:bg-red-700 text-white' 
-            : 'bg-red-600 hover:bg-red-700 text-white'
-        }`}>
+        <button 
+          disabled={!isSignedIn}
+          className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+            isSignedIn
+              ? isDark 
+                ? 'bg-red-600 hover:bg-red-700 text-white' 
+                : 'bg-red-600 hover:bg-red-700 text-white'
+              : isDark
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}>
           <BarChart3 className="h-5 w-5" />
           Generate New Comparison
         </button>

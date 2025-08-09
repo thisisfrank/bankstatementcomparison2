@@ -118,19 +118,36 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
       return;
     }
 
-    // Check file upload status
-    const file1Ready = uploadedFiles.statement1?.file && uploadedFiles.statement1?.status === 'ready' && uploadedFiles.statement1.file.size > 0;
-    const file2Ready = uploadedFiles.statement2?.file && uploadedFiles.statement2?.status === 'ready' && uploadedFiles.statement2.file.size > 0;
+    // Check if user has uploaded any files at all
+    const hasStatement1 = uploadedFiles.statement1?.file && uploadedFiles.statement1.file.size > 0;
+    const hasStatement2 = uploadedFiles.statement2?.file && uploadedFiles.statement2.file.size > 0;
+    
+    if (!hasStatement1 || !hasStatement2) {
+      const missingFiles = [];
+      if (!hasStatement1) missingFiles.push('Statement 1');
+      if (!hasStatement2) missingFiles.push('Statement 2');
+      
+      setError({
+        error: 'Files not uploaded',
+        code: 'FILES_NOT_UPLOADED',
+        details: `Please upload ${missingFiles.join(' and ')} to begin comparison.`
+      });
+      return;
+    }
+
+    // Check file upload status (ready vs uploading vs error)
+    const file1Ready = uploadedFiles.statement1?.status === 'ready';
+    const file2Ready = uploadedFiles.statement2?.status === 'ready';
     
     if (!file1Ready || !file2Ready) {
-      const missingFiles = [];
-      if (!file1Ready) missingFiles.push('Statement 1');
-      if (!file2Ready) missingFiles.push('Statement 2');
+      const processingFiles = [];
+      if (!file1Ready) processingFiles.push('Statement 1');
+      if (!file2Ready) processingFiles.push('Statement 2');
       
       setError({
         error: 'Files not ready',
         code: 'FILES_NOT_READY',
-        details: `Please wait for file processing to complete: ${missingFiles.join(' and ')}`
+        details: `Please wait for file processing to complete: ${processingFiles.join(' and ')}`
       });
       return;
     }
@@ -150,9 +167,15 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
   };
 
   const handleUseSampleData = () => {
+    // Only allow sample data for signed out users
+    if (isSignedIn) {
+      console.log('Sample data not available for signed-in users');
+      return;
+    }
+
     // Use actual filenames from history, or simple labels for preview
-    const statement1Name = location.state?.statement1Name || (isSignedIn ? '053125 WellsFargo (2).pdf' : 'Statement 1');
-    const statement2Name = location.state?.statement2Name || (isSignedIn ? '063025 WellsFargo.pdf' : 'Statement 2');
+    const statement1Name = location.state?.statement1Name || 'Statement 1';
+    const statement2Name = location.state?.statement2Name || 'Statement 2';
     
     setStatementLabels({
       statement1: statement1Name,
@@ -192,12 +215,12 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     setEditingLabel(null);
   };
 
-  // Auto-load sample data if coming from history
+  // Auto-load sample data if coming from history (only for signed out users, or if explicitly from history)
   React.useEffect(() => {
-    if (location.state?.fromHistory) {
+    if (location.state?.fromHistory && !isSignedIn) {
       handleUseSampleData();
     }
-  }, [location.state]);
+  }, [location.state, isSignedIn]);
 
   const bothFilesUploaded = uploadedFiles.statement1?.status === 'ready' && uploadedFiles.statement2?.status === 'ready';
 
