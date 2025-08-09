@@ -350,7 +350,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
         ))}
       </div>
 
-      {/* Export Options */}
+      {/* Export Options - Disabled for preview users */}
       <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
         <div className="flex gap-4 w-full">
           <button 
