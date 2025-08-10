@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useApiComparison } from '../../hooks/useApiComparison';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorAlert } from '../../components/ErrorAlert';
+import FileManager from '../../components/FileManager';
 import { apiService } from '../../services/api';
 import { Transaction } from '../../types';
 import HeroSection from './HeroSection';
@@ -49,7 +50,9 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     progress: apiProgress,
     compareStatements,
     setError,
-    clearError
+    clearError,
+    setResult: setApiResult,
+    reset: resetApiComparison
   } = useApiComparison();
 
   // Handle API result changes
@@ -62,6 +65,76 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
       setShowResults(true);
     }
   }, [apiResult, apiError, apiLoading]);
+
+  // Handle navigation from history with apiResult
+  useEffect(() => {
+    if (location.state?.apiResult && location.state?.fromHistory) {
+      console.log('📋 Loading comparison from history');
+      // Set the API result directly from history
+      setApiResult(location.state.apiResult);
+      setStatementLabels({
+        statement1: location.state.statement1Name || 'Statement 1',
+        statement2: location.state.statement2Name || 'Statement 2'
+      });
+      setShowResults(true);
+    }
+  }, [location.state, setApiResult]);
+
+  // Reset function to clear all state and start fresh
+  const handleResetComparison = () => {
+    console.log('🔄 Resetting comparison state...');
+    
+    // Save current comparison to history if we have results and user is signed in
+    if (apiResult && isSignedIn) {
+      try {
+        const historyItem = {
+          id: Date.now().toString(),
+          date: new Date().toISOString(),
+          statement1Name: statementLabels.statement1,
+          statement2Name: statementLabels.statement2,
+          result: apiResult
+        };
+        
+        // Get existing history from localStorage
+        const existingHistory = JSON.parse(localStorage.getItem('comparisonHistory') || '[]');
+        existingHistory.unshift(historyItem); // Add to beginning
+        
+        // Keep only last 50 items
+        const trimmedHistory = existingHistory.slice(0, 50);
+        
+        localStorage.setItem('comparisonHistory', JSON.stringify(trimmedHistory));
+        console.log('💾 Saved comparison to history');
+      } catch (error) {
+        console.error('Failed to save comparison to history:', error);
+      }
+    }
+    
+    // Clear API service uploaded files
+    apiService.clearAllUploadedFiles();
+    
+    // Reset API comparison state
+    resetApiComparison();
+    
+    // Clear uploaded files state
+    setUploadedFiles({});
+    
+    // Reset statement labels
+    setStatementLabels({
+      statement1: 'Statement 1',
+      statement2: 'Statement 2'
+    });
+    
+    // Clear editing state
+    setEditingLabel(null);
+    
+    // Hide results and show upload section
+    setShowResults(false);
+    
+    // Clear preview button glow
+    setPreviewButtonGlowing(false);
+    
+    console.log('✅ Comparison state reset complete');
+  };
 
   const handleFileUpload = (statementKey: 'statement1' | 'statement2', file: File) => {
     // If user is not signed in OR this is an empty file for preview trigger, just set preview glow
@@ -111,7 +184,7 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     clearError();
     
     // Validate files are properly loaded
-    if (!isSignedIn) {
+        if (!isSignedIn) {
       // For signed out users, show preview with sign-in prompt
       handleUseSampleData();
       setShowResults(true);
@@ -127,11 +200,7 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
       if (!hasStatement1) missingFiles.push('Statement 1');
       if (!hasStatement2) missingFiles.push('Statement 2');
       
-      setError({
-        error: 'Files not uploaded',
-        code: 'FILES_NOT_UPLOADED',
-        details: `Please upload ${missingFiles.join(' and ')} to begin comparison.`
-      });
+      setError(`Please upload ${missingFiles.join(' and ')} to begin comparison.`);
       return;
     }
 
@@ -144,11 +213,7 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
       if (!file1Ready) processingFiles.push('Statement 1');
       if (!file2Ready) processingFiles.push('Statement 2');
       
-      setError({
-        error: 'Files not ready',
-        code: 'FILES_NOT_READY',
-        details: `Please wait for file processing to complete: ${processingFiles.join(' and ')}`
-      });
+      setError(`Please wait for file processing to complete: ${processingFiles.join(' and ')}`);
       return;
     }
 
@@ -158,10 +223,16 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
       file2: { name: uploadedFiles.statement2!.file.name, size: uploadedFiles.statement2!.file.size, status: uploadedFiles.statement2!.status }
     });
 
-    await compareStatements(
-      uploadedFiles.statement1!.file, 
-      uploadedFiles.statement2!.file
-    );
+    try {
+      await compareStatements(
+        uploadedFiles.statement1!.file, 
+        uploadedFiles.statement2!.file
+      );
+    } catch (error) {
+      // If API fails, offer sample data as fallback
+      console.log('🔄 API failed, offering sample data fallback');
+      setError('API processing failed. Please try again with different files or use sample data.');
+    }
     
     // Note: Result handling is now done via useEffect watching apiResult/apiError
   };
@@ -204,6 +275,8 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     }
   };
 
+
+
   const handleLabelEdit = (statementKey: 'statement1' | 'statement2', newLabel: string) => {
     setStatementLabels(prev => ({
       ...prev,
@@ -215,12 +288,24 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     setEditingLabel(null);
   };
 
-  // Auto-load sample data if coming from history (only for signed out users, or if explicitly from history)
-  React.useEffect(() => {
-    if (location.state?.fromHistory && !isSignedIn) {
-      handleUseSampleData();
+  // Debug function to check account info
+  const handleDebugAccount = async () => {
+    try {
+      console.log('🔍 Debugging account information...');
+      const accountInfo = await apiService.getAccountInfo();
+      console.log('👤 Account Info:', accountInfo);
+      
+      // Also check API key info
+      const apiKeyInfo = apiService.getApiKeyInfo();
+      console.log('🔑 API Key Info:', apiKeyInfo);
+      
+      alert(`Account Type: ${accountInfo.accountType}\nPaid Credits: ${accountInfo.paidCredits}\nFree Credits: ${accountInfo.freeCredits}\nUnlimited: ${accountInfo.unlimitedCredits}`);
+    } catch (error) {
+      console.error('❌ Debug failed:', error);
+      alert(`Debug failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [location.state, isSignedIn]);
+  };
+
 
   const bothFilesUploaded = uploadedFiles.statement1?.status === 'ready' && uploadedFiles.statement2?.status === 'ready';
 
@@ -230,6 +315,21 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
         <>
           <HeroSection isDark={isDark} />
           
+          {/* Debug Section - Only show in development */}
+          {import.meta.env.DEV && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-yellow-800 mb-2">🔧 Development Debug Tools</h3>
+                <button
+                  onClick={handleDebugAccount}
+                  className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm font-medium transition-colors"
+                >
+                  Check Account Info
+                </button>
+              </div>
+            </div>
+          )}
+
           <UploadSection
             isDark={isDark}
             isSignedIn={isSignedIn}
@@ -241,11 +341,14 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
             apiLoading={apiLoading}
             onFileUpload={handleFileUpload}
             onLabelEdit={handleLabelEdit}
-            onLabelSave={handleLabelSave}
+                        onLabelSave={handleLabelSave}
             onGenerateComparison={handleGenerateComparison}
             onUseSampleData={handleUseSampleData}
             setEditingLabel={setEditingLabel}
           />
+
+          {/* File Manager - Only show for signed in users */}
+          {isSignedIn && <FileManager isDark={isDark} />}
 
           <DemoSection isDark={isDark} />
         </>
@@ -285,6 +388,7 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
             isSignedIn={isSignedIn}
             statementLabels={statementLabels}
             apiResult={apiResult}
+            onResetComparison={handleResetComparison}
           />
         </div>
       )}

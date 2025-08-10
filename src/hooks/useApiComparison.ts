@@ -1,32 +1,31 @@
 import { useState, useCallback } from 'react';
 import { 
-  apiService, 
-  parseApiError
+  apiService
 } from '../services/api';
 import { ComparisonResult } from '../types';
-import { createApiError, getUserFriendlyError, type ApiError } from '../types/errors';
 import { StatementProcessor } from '../services/statementProcessor';
 import { ComparisonEngine } from '../services/comparisonEngine';
 
 interface UseApiComparisonReturn {
   // State
   isLoading: boolean;
-  error: ApiError | null;
+  error: string | null;
   result: ComparisonResult | null;
   progress: number;
 
     // Actions
   compareStatements: (file1: File, file2: File) => Promise<void>;
-  setError: (error: ApiError) => void;
+  setError: (error: string) => void;
   clearError: () => void;
   clearResult: () => void;
+  setResult: (result: ComparisonResult) => void;
   reset: () => void;
   validateFiles: (file1: File, file2: File) => { isValid: boolean; errors: string[] };
 }
 
 export function useApiComparison(): UseApiComparisonReturn {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<ApiError | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [progress, setProgress] = useState(0);
 
@@ -56,7 +55,7 @@ export function useApiComparison(): UseApiComparisonReturn {
     // Validate files are different
     const validation = validateFiles(file1, file2);
     if (!validation.isValid) {
-      setError(createApiError('VALIDATION_ERROR', validation.errors.join('; ')));
+      setError(validation.errors.join('; '));
       return;
     }
 
@@ -64,7 +63,29 @@ export function useApiComparison(): UseApiComparisonReturn {
     setIsLoading(true);
     
     try {
-      // Step 1: Process statements through API (25% -> 50%)
+      // Step 0: Check credits before processing (0% -> 10%)
+      setProgress(10);
+      console.log('💳 Checking available credits...');
+      const creditsCheck = await apiService.checkCreditsBeforeProcessing(2);
+      
+      // Only block if we're sure we don't have enough credits
+      if (!creditsCheck.hasEnoughCredits && creditsCheck.accountType !== 'free_tier') {
+        throw new Error(`Insufficient credits: ${creditsCheck.availableCredits} available, ${creditsCheck.requiredCredits} required. Please add more credits or try again tomorrow.`);
+      }
+      
+      if (creditsCheck.accountType === 'free_tier') {
+        console.log('⚠️ Free tier account detected - daily page limits may apply');
+      }
+      
+      // Step 0.5: Try to activate paid credits if we have them (10% -> 15%)
+      if (creditsCheck.accountType === 'paid' && creditsCheck.paidCredits > 0) {
+        setProgress(15);
+        console.log('💳 Paid account detected with', creditsCheck.paidCredits, 'credits');
+      }
+      
+      console.log('✅ Credits check passed');
+      
+      // Step 1: Process statements through API (15% -> 50%)
       setProgress(25);
       console.log('📊 Processing statements through API...');
       const apiResults = await apiService.processTwoStatements(file1, file2);
@@ -85,7 +106,7 @@ export function useApiComparison(): UseApiComparisonReturn {
       
       // Validate result structure
       if (!comparisonResult || !comparisonResult.comparison) {
-        throw new Error(JSON.stringify(createApiError('COMPARISON_ERROR', 'Failed to generate comparison data')));
+        throw new Error('Failed to generate comparison data');
       }
 
       // Validate parsed statements
@@ -93,11 +114,11 @@ export function useApiComparison(): UseApiComparisonReturn {
       const validation2 = StatementProcessor.validateParsedStatement(comparisonResult.statement2);
       
       if (!validation1.isValid) {
-        throw new Error(JSON.stringify(createApiError('VALIDATION_ERROR', `Statement 1: ${validation1.errors.join('; ')}`)));
+        throw new Error(`Statement 1: ${validation1.errors.join('; ')}`);
       }
       
       if (!validation2.isValid) {
-        throw new Error(JSON.stringify(createApiError('VALIDATION_ERROR', `Statement 2: ${validation2.errors.join('; ')}`)));
+        throw new Error(`Statement 2: ${validation2.errors.join('; ')}`);
       }
 
       setProgress(100);
@@ -107,22 +128,9 @@ export function useApiComparison(): UseApiComparisonReturn {
       console.error('Comparison error:', err);
       
       if (err instanceof Error) {
-        const apiError = parseApiError(err.message);
-        // Apply user-friendly error messages
-        const friendlyError = getUserFriendlyError(apiError);
-        
-        // Special handling for credit exhaustion
-        if (apiError.code === 'ANONYMOUS_NOT_ENOUGH_CREDITS') {
-          console.log('🔄 API Credits exhausted - Daily limit reached');
-        }
-        
-        setError({
-          ...apiError,
-          error: friendlyError.title,
-          details: friendlyError.details
-        });
+        setError(err.message);
       } else {
-        setError(createApiError('UNKNOWN_ERROR', 'Please try again or contact support'));
+        setError('Unknown error occurred');
       }
     } finally {
       setIsLoading(false);
@@ -132,7 +140,7 @@ export function useApiComparison(): UseApiComparisonReturn {
 
 
 
-  const setErrorCallback = useCallback((error: ApiError) => {
+  const setErrorCallback = useCallback((error: string) => {
     setError(error);
   }, []);
 
@@ -142,6 +150,10 @@ export function useApiComparison(): UseApiComparisonReturn {
 
   const clearResult = useCallback(() => {
     setResult(null);
+  }, []);
+
+  const setResultCallback = useCallback((result: ComparisonResult) => {
+    setResult(result);
   }, []);
 
   const reset = useCallback(() => {
@@ -163,6 +175,7 @@ export function useApiComparison(): UseApiComparisonReturn {
     setError: setErrorCallback,
     clearError,
     clearResult,
+    setResult: setResultCallback,
     reset,
     
     // Utils

@@ -18,6 +18,8 @@ export type ErrorCode =
   | 'VALIDATION_ERROR'       // File/data validation failed
   | 'COMPARISON_ERROR'       // Comparison generation failed
   | 'FILES_NOT_READY'        // Files not ready for processing
+  | 'FILES_NOT_UPLOADED'     // Files not uploaded
+  | 'API_FALLBACK'           // API fallback to sample data
   
   // Fallback
   | 'UNKNOWN_ERROR';         // Catch-all for unexpected errors
@@ -89,6 +91,16 @@ export const ERROR_MESSAGES: Record<ErrorCode, { title: string; description: str
     title: 'Files not ready',
     description: 'Files are still processing.',
     actionable: 'Please wait for file processing to complete.'
+  },
+  FILES_NOT_UPLOADED: {
+    title: 'Files not uploaded',
+    description: 'The requested files were not found or uploaded.',
+    actionable: 'Please ensure the files are uploaded and try again.'
+  },
+  API_FALLBACK: {
+    title: 'API fallback',
+    description: 'The API returned a fallback response (e.g., sample data).',
+    actionable: 'This might indicate a temporary issue with the API or a fallback mechanism.'
   },
   
   // Fallback

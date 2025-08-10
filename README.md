@@ -360,7 +360,7 @@ expect(TransactionCategorizer.categorizeTransaction('SHELL GAS STATION')).toBe('
 
 // Test statement processing
 import { StatementProcessor } from '../services/statementProcessor';
-const result = StatementProcessor.convertToInternalFormat(mockApiResponse, 'test.pdf');
+const result = StatementProcessor.convertToInternalFormat(apiResponse, 'test.pdf');
 expect(result.transactions).toHaveLength(10);
 
 // Test comparison

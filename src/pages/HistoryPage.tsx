@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Download, Trash2, Eye, Calendar, Filter, Search, BarChart3, FileText } from 'lucide-react';
 
@@ -7,41 +7,27 @@ interface ComparisonHistory {
   date: string;
   statement1Name: string;
   statement2Name: string;
+  result?: any; // API result data
 }
-
-const mockHistory: ComparisonHistory[] = [
-  {
-    id: '1',
-    date: '2024-01-15',
-    statement1Name: 'January 2024',
-    statement2Name: 'December 2023'
-  },
-  {
-    id: '2',
-    date: '2024-01-10',
-    statement1Name: 'My Statement',
-    statement2Name: 'Partner Statement'
-  },
-  {
-    id: '3',
-    date: '2024-01-05',
-    statement1Name: 'December 2023',
-    statement2Name: 'November 2023'
-  },
-  {
-    id: '4',
-    date: '2024-01-02',
-    statement1Name: 'Q4 Summary',
-    statement2Name: 'Q3 Summary'
-  }
-];
 
 export default function HistoryPage({ isDark }: { isDark: boolean }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date'>('date');
+  const [history, setHistory] = useState<ComparisonHistory[]>([]);
   const navigate = useNavigate();
 
-  const filteredHistory = mockHistory
+  // Load history from localStorage
+  useEffect(() => {
+    try {
+      const savedHistory = JSON.parse(localStorage.getItem('comparisonHistory') || '[]');
+      setHistory(savedHistory);
+    } catch (error) {
+      console.error('Failed to load history from localStorage:', error);
+      setHistory([]);
+    }
+  }, []);
+
+  const filteredHistory = history
     .filter(item => {
       const matchesSearch = item.statement1Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            item.statement2Name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -69,9 +55,21 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
         showResults: true,
         statement1Name: item.statement1Name,
         statement2Name: item.statement2Name,
-        fromHistory: true
+        fromHistory: true,
+        apiResult: item.result // Pass the actual result data
       }
     });
+  };
+
+  const handleDeleteComparison = (itemId: string) => {
+    try {
+      const updatedHistory = history.filter(item => item.id !== itemId);
+      setHistory(updatedHistory);
+      localStorage.setItem('comparisonHistory', JSON.stringify(updatedHistory));
+      console.log('🗑️ Deleted comparison from history');
+    } catch (error) {
+      console.error('Failed to delete comparison from history:', error);
+    }
   };
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -207,6 +205,7 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
                   </button>
                   
                   <button
+                    onClick={() => handleDeleteComparison(item.id)}
                     className={`p-2 rounded-lg transition-colors ${
                       isDark 
                         ? 'hover:bg-red-900/20 text-red-400 hover:text-red-300' 
@@ -224,7 +223,7 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
       )}
 
       {/* Empty State for New Users */}
-      {mockHistory.length === 0 && (
+      {history.length === 0 && (
         <div className={`text-center py-16 rounded-xl ${
           isDark ? 'bg-gray-800' : 'bg-white'
         } shadow-lg`}>

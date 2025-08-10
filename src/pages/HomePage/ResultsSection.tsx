@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Download, BarChart3, Home, Car, Utensils, ShoppingBag, Gamepad2, Heart, Briefcase, MoreHorizontal } from 'lucide-react';
+import { FileText, Download, BarChart3, Home, Car, Utensils, ShoppingBag, Gamepad2, Heart, Briefcase, MoreHorizontal, CreditCard, ShoppingCart } from 'lucide-react';
 import { CategoryComparison } from './index';
+import TransactionManager, { Transaction } from '../../components/TransactionManager';
 
 // Helper function to get category icons
 const getCategoryIcon = (category: string): React.ReactNode => {
@@ -35,57 +36,230 @@ const getCategoryIcon = (category: string): React.ReactNode => {
 
 const mockComparison: CategoryComparison[] = [
   {
-    category: 'Housing',
-    icon: <Home className="h-5 w-5" />,
-    statement1: 2450.00,
-    statement2: 2450.00,
-    difference: 0.00,
-    percentChange: 0,
+    category: 'Income',
+    icon: <Briefcase className="h-5 w-5" />,
+    statement1: 2400.00,
+    statement2: 5713.21,
+    difference: 3313.21,
+    percentChange: 138.1,
     transactions1: [
-      { date: '2024-01-01', description: 'Rent Payment', amount: 2450.00, category: 'Housing', type: 'debit' as const }
+      { id: 'income-1-1', date: '2025-01-15', description: 'Upwork Escrow Payment', amount: 1200.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-1-2', date: '2025-01-30', description: 'Stripe Transfer', amount: 1200.00, category: 'Income', type: 'credit' as const }
     ],
     transactions2: [
-      { date: '2024-02-01', description: 'Rent Payment', amount: 2450.00, category: 'Housing', type: 'debit' as const }
-    ]
-  },
-  {
-    category: 'Transportation',
-    icon: <Car className="h-5 w-5" />,
-    statement1: 340.50,
-    statement2: 425.75,
-    difference: 85.25,
-    percentChange: 25.0,
-    transactions1: [
-      { date: '2024-01-05', description: 'Gas Station', amount: 65.50, category: 'Transportation', type: 'debit' as const },
-      { date: '2024-01-12', description: 'Gas Station', amount: 72.00, category: 'Transportation', type: 'debit' as const },
-      { date: '2024-01-20', description: 'Car Insurance', amount: 203.00, category: 'Transportation', type: 'debit' as const }
-    ],
-    transactions2: [
-      { date: '2024-02-03', description: 'Gas Station', amount: 68.25, category: 'Transportation', type: 'debit' as const },
-      { date: '2024-02-10', description: 'Gas Station', amount: 74.50, category: 'Transportation', type: 'debit' as const },
-      { date: '2024-02-18', description: 'Car Insurance', amount: 203.00, category: 'Transportation', type: 'debit' as const },
-      { date: '2024-02-25', description: 'Car Repair', amount: 80.00, category: 'Transportation', type: 'debit' as const }
+      { id: 'income-2-1', date: '2025-02-03', description: 'Paypal Transfer', amount: 964.61, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-2', date: '2025-02-03', description: 'Online Transfer', amount: 400.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-3', date: '2025-02-06', description: 'Upwork Escrow Payment', amount: 810.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-4', date: '2025-02-10', description: 'Stripe Transfer', amount: 193.90, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-5', date: '2025-02-13', description: 'Upwork Escrow Payment', amount: 630.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-6', date: '2025-02-18', description: 'ATM Cash Deposit', amount: 295.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-7', date: '2025-02-20', description: 'Upwork Escrow Payment', amount: 810.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-8', date: '2025-02-27', description: 'Upwork Escrow Payment', amount: 630.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-9', date: '2025-02-28', description: 'Stripe Transfer', amount: 970.70, category: 'Income', type: 'credit' as const }
     ]
   },
   {
     category: 'Food & Dining',
     icon: <Utensils className="h-5 w-5" />,
-    statement1: 680.25,
-    statement2: 520.40,
-    difference: -159.85,
-    percentChange: -23.5,
+    statement1: 450.00,
+    statement2: 680.00,
+    difference: 230.00,
+    percentChange: 51.1,
     transactions1: [
-      { date: '2024-01-03', description: 'Grocery Store', amount: 125.50, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2024-01-08', description: 'Restaurant', amount: 45.75, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2024-01-15', description: 'Grocery Store', amount: 98.25, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2024-01-22', description: 'Coffee Shop', amount: 28.50, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2024-01-28', description: 'Takeout', amount: 35.75, category: 'Food & Dining', type: 'debit' as const }
+      { id: 'food-1-1', date: '2025-01-05', description: 'Starbucks', amount: 4.59, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-1-2', date: '2025-01-12', description: 'McDonald\'s', amount: 12.25, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-1-3', date: '2025-01-18', description: 'Salad and Go', amount: 13.36, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-1-4', date: '2025-01-25', description: 'Panda Express', amount: 11.15, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-1-5', date: '2025-01-28', description: 'Wingstop', amount: 16.02, category: 'Food & Dining', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2024-02-02', description: 'Grocery Store', amount: 110.25, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2024-02-09', description: 'Restaurant', amount: 52.30, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2024-02-16', description: 'Grocery Store', amount: 89.40, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2024-02-23', description: 'Coffee Shop', amount: 22.75, category: 'Food & Dining', type: 'debit' as const }
+      { date: '2025-02-03', description: 'McDonald\'s', amount: 12.25, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-03', description: 'Tacos El Gordo', amount: 16.98, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-03', description: 'Shake Shack', amount: 21.64, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-04', description: 'Starbucks', amount: 4.59, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-04', description: 'Salad and Go', amount: 13.36, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-05', description: 'Salad and Go', amount: 8.95, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-05', description: 'NEW Asian Fusion', amount: 15.73, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-07', description: 'Raising Canes', amount: 11.23, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-07', description: 'Papa Chevos Taco', amount: 16.86, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-10', description: 'Panda Express', amount: 11.15, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-10', description: 'AZ Pho Grill', amount: 40.35, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-11', description: 'Wingstop', amount: 16.02, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-14', description: 'Chick-Fil-A', amount: 11.77, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-18', description: 'McDonald\'s', amount: 11.44, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-18', description: 'McDonald\'s', amount: 5.40, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-18', description: 'NEW Asian Fusion', amount: 16.27, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-18', description: 'Salad and Go', amount: 9.49, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-20', description: 'McDonald\'s', amount: 11.76, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-21', description: 'Salad and Go', amount: 9.06, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-24', description: 'Buffalo Wild Wings', amount: 38.72, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-24', description: 'Popeyes', amount: 12.85, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-27', description: 'Filibertos Mexican', amount: 17.34, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-27', description: 'Salad and Go', amount: 7.34, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-27', description: 'KFC', amount: 14.22, category: 'Food & Dining', type: 'debit' as const },
+      { date: '2025-02-28', description: 'Filibertos Mexican', amount: 13.77, category: 'Food & Dining', type: 'debit' as const }
+    ]
+  },
+  {
+    category: 'Transportation',
+    icon: <Car className="h-5 w-5" />,
+    statement1: 180.00,
+    statement2: 420.00,
+    difference: 240.00,
+    percentChange: 133.3,
+    transactions1: [
+      { date: '2025-01-08', description: 'Shell Gas Station', amount: 45.50, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-01-15', description: 'Uber Trip', amount: 40.38, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-01-22', description: 'Uber Trip', amount: 17.95, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-01-29', description: 'Arco Gas Station', amount: 51.78, category: 'Transportation', type: 'debit' as const }
+    ],
+    transactions2: [
+      { date: '2025-02-03', description: 'Uber Trip', amount: 40.38, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-03', description: 'Uber Trip', amount: 17.95, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-03', description: 'Shell Gas Station', amount: 31.41, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-04', description: 'Uber Trip', amount: 10.93, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-05', description: 'Los Perez Tire Shop', amount: 62.40, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-05', description: 'Autozone', amount: 15.08, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-05', description: 'Circle K Gas', amount: 35.04, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-10', description: 'Ls Bikemasters', amount: 31.24, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-10', description: 'Ace Parking', amount: 10.00, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-10', description: 'Circle K Gas', amount: 35.02, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-11', description: 'Circle K Gas', amount: 7.79, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-14', description: 'Circle K Gas', amount: 12.74, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-14', description: 'Autozone', amount: 65.51, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-18', description: 'Clean Freak Car Wash', amount: 14.00, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-18', description: 'Arco Gas Station', amount: 51.78, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-24', description: 'Circle K Gas', amount: 3.24, category: 'Transportation', type: 'debit' as const },
+      { date: '2025-02-24', description: 'Circle K Gas', amount: 35.05, category: 'Transportation', type: 'debit' as const }
+    ]
+  },
+  {
+    category: 'Shopping',
+    icon: <ShoppingBag className="h-5 w-5" />,
+    statement1: 120.00,
+    statement2: 280.00,
+    difference: 160.00,
+    percentChange: 133.3,
+    transactions1: [
+      { date: '2025-01-10', description: 'Target', amount: 27.81, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-01-18', description: 'Barnes and Noble', amount: 9.75, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-01-25', description: 'Barnes and Noble', amount: 2.98, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-01-28', description: 'Dollar Tree', amount: 2.54, category: 'Shopping', type: 'debit' as const }
+    ],
+    transactions2: [
+      { date: '2025-02-03', description: 'Gravitate Smoke Shop', amount: 12.68, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-06', description: 'Wal-Mart Super Center', amount: 48.48, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-06', description: 'Dollar Tree', amount: 2.54, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-07', description: 'Barnes and Noble', amount: 9.75, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-10', description: 'Gravitate Smoke Shop', amount: 7.81, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-10', description: 'Target', amount: 27.81, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-10', description: 'Barnes and Noble', amount: 2.98, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-18', description: 'Barnes and Noble', amount: 2.98, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-18', description: 'Barnes and Noble', amount: 2.97, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-21', description: 'Frys Food', amount: 42.64, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-24', description: 'Barnes and Noble', amount: 4.27, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-25', description: 'Frys Food', amount: 16.22, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-25', description: 'Dollar Tree', amount: 6.09, category: 'Shopping', type: 'debit' as const },
+      { date: '2025-02-27', description: 'Frys Food', amount: 50.04, category: 'Shopping', type: 'debit' as const }
+    ]
+  },
+  {
+    category: 'Healthcare',
+    icon: <Heart className="h-5 w-5" />,
+    statement1: 0.00,
+    statement2: 820.00,
+    difference: 820.00,
+    percentChange: 100,
+    transactions1: [],
+    transactions2: [
+      { date: '2025-02-18', description: 'Dr. Kerry Zang', amount: 820.00, category: 'Healthcare', type: 'debit' as const }
+    ]
+  },
+  {
+    category: 'Business & Professional',
+    icon: <Briefcase className="h-5 w-5" />,
+    statement1: 85.00,
+    statement2: 120.00,
+    difference: 35.00,
+    percentChange: 41.2,
+    transactions1: [
+      { date: '2025-01-07', description: 'Adobe Subscription', amount: 64.97, category: 'Business & Professional', type: 'debit' as const },
+      { date: '2025-01-21', description: 'Anthropic Subscription', amount: 16.17, category: 'Business & Professional', type: 'debit' as const }
+    ],
+    transactions2: [
+      { date: '2025-02-03', description: 'X Corp Payment', amount: 8.62, category: 'Business & Professional', type: 'debit' as const },
+      { date: '2025-02-07', description: 'Adobe Subscription', amount: 64.97, category: 'Business & Professional', type: 'debit' as const },
+      { date: '2025-02-10', description: 'Adobe Subscription', amount: 64.97, category: 'Business & Professional', type: 'debit' as const },
+      { date: '2025-02-21', description: 'Anthropic Subscription', amount: 16.17, category: 'Business & Professional', type: 'debit' as const },
+      { date: '2025-02-18', description: 'Dropbox Payment', amount: 12.93, category: 'Business & Professional', type: 'debit' as const }
+    ]
+  },
+  {
+    category: 'Subscriptions',
+    icon: <CreditCard className="h-5 w-5" />,
+    statement1: 200.00,
+    statement2: 350.00,
+    difference: 150.00,
+    percentChange: 75.0,
+    transactions1: [
+      { date: '2025-01-15', description: 'Netflix Subscription', amount: 15.99, category: 'Subscriptions', type: 'debit' as const },
+      { date: '2025-01-30', description: 'Spotify Premium', amount: 9.99, category: 'Subscriptions', type: 'debit' as const }
+    ],
+    transactions2: [
+      { date: '2025-02-04', description: 'Centurylink Payment', amount: 55.78, category: 'Subscriptions', type: 'debit' as const },
+      { date: '2025-02-19', description: 'Amazon Prime', amount: 16.16, category: 'Subscriptions', type: 'debit' as const },
+      { date: '2025-02-19', description: 'Verizon Wireless', amount: 110.26, category: 'Subscriptions', type: 'debit' as const },
+      { date: '2025-02-20', description: 'Apple.Com Bill', amount: 1.07, category: 'Subscriptions', type: 'debit' as const },
+      { date: '2025-02-28', description: 'Progressive Insurance', amount: 136.00, category: 'Subscriptions', type: 'debit' as const },
+      { date: '2025-02-18', description: 'Eos Fitness', amount: 10.14, category: 'Subscriptions', type: 'debit' as const },
+      { date: '2025-02-28', description: 'Eos Fitness', amount: 5.00, category: 'Subscriptions', type: 'debit' as const }
+    ]
+  },
+  {
+    category: 'Groceries',
+    icon: <ShoppingCart className="h-5 w-5" />,
+    statement1: 150.00,
+    statement2: 200.00,
+    difference: 50.00,
+    percentChange: 33.3,
+    transactions1: [
+      { date: '2025-01-10', description: 'Frys Food', amount: 45.50, category: 'Groceries', type: 'debit' as const },
+      { date: '2025-01-25', description: 'Frys Food', amount: 38.25, category: 'Groceries', type: 'debit' as const },
+      { date: '2025-01-28', description: 'Frys Food', amount: 66.25, category: 'Groceries', type: 'debit' as const }
+    ],
+    transactions2: [
+      { date: '2025-02-18', description: 'Frys Food', amount: 32.44, category: 'Groceries', type: 'debit' as const },
+      { date: '2025-02-25', description: 'Frys Food', amount: 16.22, category: 'Groceries', type: 'debit' as const },
+      { date: '2025-02-27', description: 'Frys Food', amount: 50.04, category: 'Groceries', type: 'debit' as const }
+    ]
+  },
+  {
+    category: 'Other',
+    icon: <MoreHorizontal className="h-5 w-5" />,
+    statement1: 300.00,
+    statement2: 800.00,
+    difference: 500.00,
+    percentChange: 166.7,
+    transactions1: [
+      { date: '2025-01-05', description: 'ATM Withdrawal', amount: 100.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-01-15', description: 'Transfer to Savings', amount: 200.00, category: 'Other', type: 'debit' as const }
+    ],
+    transactions2: [
+      { date: '2025-02-03', description: 'ATM Withdrawal', amount: 211.99, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-03', description: 'ATM Fee', amount: 3.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-04', description: 'Robinhood Debit', amount: 10.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-05', description: 'Flamingo Hotel', amount: 524.08, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-07', description: 'JPMorgan Chase Transfer', amount: 200.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-11', description: 'Robinhood Debit', amount: 10.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-18', description: 'ATM Withdrawal', amount: 103.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-18', description: 'ATM Fee', amount: 3.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-18', description: 'Student Loan Payment', amount: 135.19, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-19', description: 'Robinhood Debit', amount: 10.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-19', description: 'Student Loan Payment', amount: 58.30, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-24', description: 'ATM Withdrawal', amount: 200.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-25', description: 'Robinhood Debit', amount: 10.00, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-28', description: 'ATM Withdrawal', amount: 203.95, category: 'Other', type: 'debit' as const },
+      { date: '2025-02-28', description: 'ATM Fee', amount: 3.00, category: 'Other', type: 'debit' as const }
     ]
   }
 ];
@@ -98,12 +272,15 @@ interface ResultsSectionProps {
     statement2: string;
   };
   apiResult?: any; // API result type would be defined in your API service
+  onResetComparison: () => void;
 }
 
-export default function ResultsSection({ isDark, isSignedIn, statementLabels, apiResult }: ResultsSectionProps) {
+export default function ResultsSection({ isDark, isSignedIn, statementLabels, apiResult, onResetComparison }: ResultsSectionProps) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [editableData, setEditableData] = useState<CategoryComparison[]>(mockComparison);
+  const [editMode, setEditMode] = useState(false);
 
-  // Use API data if available, otherwise fall back to mock data
+  // Use API data if available, otherwise fall back to editable mock data for preview
   const displayData = apiResult?.comparison.map((item: any) => ({
     category: item.category,
     icon: getCategoryIcon(item.category),
@@ -113,7 +290,47 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
     percentChange: item.percentChange,
     transactions1: item.transactions1,
     transactions2: item.transactions2
-  })) || mockComparison;
+  })) || editableData;
+
+  // Convert transactions to have IDs for editing
+  const convertTransactionsWithIds = (transactions: any[]): Transaction[] => {
+    return transactions.map((t, index) => ({
+      id: t.id || `${t.category}-${index}-${Date.now()}`,
+      date: t.date,
+      description: t.description,
+      amount: t.amount,
+      category: t.category,
+      type: t.type
+    }));
+  };
+
+  const handleTransactionsChange = (category: string, statementKey: 'transactions1' | 'transactions2', newTransactions: Transaction[]) => {
+    setEditableData(prev => prev.map(item => {
+      if (item.category === category) {
+        // Calculate new totals
+        const statement1Total = statementKey === 'transactions1' 
+          ? newTransactions.reduce((sum, t) => sum + (t.type === 'credit' ? t.amount : -t.amount), 0)
+          : item.transactions1.reduce((sum, t) => sum + (t.type === 'credit' ? t.amount : -t.amount), 0);
+        
+        const statement2Total = statementKey === 'transactions2'
+          ? newTransactions.reduce((sum, t) => sum + (t.type === 'credit' ? t.amount : -t.amount), 0)
+          : item.transactions2.reduce((sum, t) => sum + (t.type === 'credit' ? t.amount : -t.amount), 0);
+        
+        const difference = statement2Total - statement1Total;
+        const percentChange = statement1Total !== 0 ? ((difference / Math.abs(statement1Total)) * 100) : 0;
+        
+        return {
+          ...item,
+          [statementKey]: newTransactions,
+          statement1: Math.abs(statement1Total),
+          statement2: Math.abs(statement2Total),
+          difference: Math.abs(difference),
+          percentChange: Math.round(percentChange * 10) / 10
+        };
+      }
+      return item;
+    }));
+  };
 
   return (
     <>
@@ -178,7 +395,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
                 Withdrawals
               </span>
               <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                ${apiResult?.statement1.summary.totalWithdrawals.toFixed(2) || '3,470.75'}
+                ${apiResult?.statement1.summary.totalWithdrawals.toFixed(2) || '2,835.00'}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -186,7 +403,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
                 Deposits
               </span>
               <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                ${apiResult?.statement1.summary.totalDeposits.toFixed(2) || '4,250.00'}
+                ${apiResult?.statement1.summary.totalDeposits.toFixed(2) || '2,400.00'}
               </span>
             </div>
           </div>
@@ -207,7 +424,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
                 Withdrawals
               </span>
               <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                ${apiResult?.statement2.summary.totalWithdrawals.toFixed(2) || '3,396.15'}
+                ${apiResult?.statement2.summary.totalWithdrawals.toFixed(2) || '3,796.79'}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -215,12 +432,32 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
                 Deposits
               </span>
               <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                ${apiResult?.statement2.summary.totalDeposits.toFixed(2) || '4,250.00'}
+                ${apiResult?.statement2.summary.totalDeposits.toFixed(2) || '5,713.21'}
               </span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Edit Mode Toggle - Only for signed-in users */}
+      {isSignedIn && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setEditMode(!editMode)}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              editMode
+                ? isDark 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+                : isDark 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {editMode ? 'Exit Edit Mode' : 'Edit Transactions'}
+          </button>
+        </div>
+      )}
 
       {/* Category Details */}
       <div className="space-y-4">
@@ -303,47 +540,83 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
 
             {expandedCategory === category.category && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h5 className={`font-medium mb-3 ${
-                      isDark ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Statement 1 Transactions
-                    </h5>
-                    <div className="space-y-2">
-                      {category.transactions1.map((transaction, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                            {transaction.date} - {transaction.description}
-                          </span>
-                          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-                            ${transaction.amount.toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
+                {editMode ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h5 className={`font-medium mb-3 ${
+                        isDark ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Statement 1 Transactions
+                      </h5>
+                      <TransactionManager
+                        isDark={isDark}
+                        transactions={convertTransactionsWithIds(category.transactions1)}
+                        onTransactionsChange={(newTransactions) => 
+                          handleTransactionsChange(category.category, 'transactions1', newTransactions)
+                        }
+                        category={category.category}
+                      />
+                    </div>
+                    
+                    <div>
+                      <h5 className={`font-medium mb-3 ${
+                        isDark ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Statement 2 Transactions
+                      </h5>
+                      <TransactionManager
+                        isDark={isDark}
+                        transactions={convertTransactionsWithIds(category.transactions2)}
+                        onTransactionsChange={(newTransactions) => 
+                          handleTransactionsChange(category.category, 'transactions2', newTransactions)
+                        }
+                        category={category.category}
+                      />
                     </div>
                   </div>
-                  
-                  <div>
-                    <h5 className={`font-medium mb-3 ${
-                      isDark ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Statement 2 Transactions
-                    </h5>
-                    <div className="space-y-2">
-                      {category.transactions2.map((transaction, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                            {transaction.date} - {transaction.description}
-                          </span>
-                          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-                            ${transaction.amount.toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h5 className={`font-medium mb-3 ${
+                        isDark ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Statement 1 Transactions
+                      </h5>
+                      <div className="space-y-2">
+                        {category.transactions1.map((transaction, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                              {transaction.date} - {transaction.description}
+                            </span>
+                            <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                              ${transaction.amount.toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h5 className={`font-medium mb-3 ${
+                        isDark ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Statement 2 Transactions
+                      </h5>
+                      <div className="space-y-2">
+                        {category.transactions2.map((transaction, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                              {transaction.date} - {transaction.description}
+                            </span>
+                            <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                              ${transaction.amount.toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -385,15 +658,11 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
         </div>
         
         <button 
-          disabled={!isSignedIn}
+          onClick={onResetComparison}
           className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-            isSignedIn
-              ? isDark 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'bg-red-600 hover:bg-red-700 text-white'
-              : isDark
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            isDark 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : 'bg-red-600 hover:bg-red-700 text-white'
           }`}>
           <BarChart3 className="h-5 w-5" />
           Generate New Comparison

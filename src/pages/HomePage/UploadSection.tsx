@@ -151,7 +151,7 @@ interface UploadSectionProps {
   apiLoading: boolean;
   onFileUpload: (statementKey: 'statement1' | 'statement2', file: File) => void;
   onLabelEdit: (statementKey: 'statement1' | 'statement2', newLabel: string) => void;
-  onLabelSave: () => void;
+    onLabelSave: () => void;
   onGenerateComparison: () => void;
   onUseSampleData: () => void;
   setEditingLabel: (label: string | null) => void;
@@ -168,7 +168,7 @@ export default function UploadSection({
   apiLoading,
   onFileUpload,
   onLabelEdit,
-  onLabelSave,
+    onLabelSave,
   onGenerateComparison,
   onUseSampleData,
   setEditingLabel
@@ -441,6 +441,8 @@ export default function UploadSection({
           />
         </div>
       </div>
+
+
 
       {/* Sample Data Button - Only for signed out users */}
       {!isSignedIn && (
