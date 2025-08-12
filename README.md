@@ -71,7 +71,7 @@ The Bank Statement Converter API handles PDF parsing:
 ```
 POST /BankStatement
 Content-Type: multipart/form-data
-Authorization: {API_KEY}
+Authorization: Bearer {JWT_TOKEN}
 
 Body: file (PDF)
 Response: [{ uuid: string, filename: string, pdfType: "TEXT_BASED"|"IMAGE_BASED", state: "READY"|"PROCESSING" }]
@@ -80,7 +80,7 @@ Response: [{ uuid: string, filename: string, pdfType: "TEXT_BASED"|"IMAGE_BASED"
 #### Check Processing Status (if needed)
 ```
 POST /BankStatement/status
-Authorization: {API_KEY}
+Authorization: Bearer {JWT_TOKEN}
 Content-Type: application/json
 
 Body: ["uuid1", "uuid2"]
@@ -90,7 +90,7 @@ Response: [{ uuid: string, state: "READY"|"PROCESSING"|"ERROR" }]
 #### Convert to JSON
 ```
 POST /BankStatement/convert?format=JSON
-Authorization: {API_KEY}
+Authorization: Bearer {JWT_TOKEN}
 Content-Type: application/json
 
 Body: ["uuid1", "uuid2"]
@@ -261,129 +261,20 @@ interface ComparisonResult {
 
 Environment variables required:
 ```bash
-VITE_PDF_PARSER_API_KEY=your-api-key-here
+VITE_BSC_AUTH_TOKEN=your-jwt-token-here
 VITE_PDF_PARSER_API_URL=https://api2.bankstatementconverter.com/api/v1
 ```
+
+**Note:** To get your JWT authentication token:
+1. Go to https://bankstatementconverter.com/ in Google Chrome
+2. Login to your account
+3. Hit F12 to open developer tools
+4. Click on the "Application" tab
+5. On the left panel click on "Storage" -> "Local Storage" -> "https://bankstatementconverter.com/"
+6. Copy the value for the "bsc-authToken" key
 
 ## Usage Examples
 
 ### Basic Usage in Components
 
-```typescript
-// In your component
-const { isLoading, error, result, compareStatements } = useApiComparison();
-
-// Start comparison
-compareStatements(file1, file2);
-
-// Handle results
-if (result) {
-  // Access processed statements
-  const statement1 = result.statement1;
-  const statement2 = result.statement2;
-  
-  // Access comparison data
-  const categoryComparisons = result.comparison;
-  
-  // Generate insights
-  const insights = ComparisonEngine.generateInsights(result);
-}
 ```
-
-### Advanced Usage with Custom Options
-
-```typescript
-import { ComparisonEngine } from '../services/comparisonEngine';
-import { StatementProcessor } from '../services/statementProcessor';
-
-// Process statements with validation
-const statement1 = StatementProcessor.convertToInternalFormat(apiResponse1, filename1);
-const validation = StatementProcessor.validateParsedStatement(statement1);
-
-// Custom comparison with filters
-const comparison = ComparisonEngine.compareStatements(statement1, statement2, {
-  excludeCategories: ['Transfers & Investments'],
-  minimumAmount: 50
-});
-
-// Generate insights and recommendations
-const insights = ComparisonEngine.generateInsights(comparison);
-console.log('Recommendations:', insights.recommendations);
-
-// Export data
-const { csv, json } = ComparisonEngine.exportComparisonData(comparison);
-```
-
-### Direct Service Usage
-
-```typescript
-import { apiService } from '../services/api';
-import { TransactionCategorizer } from '../services/categorizer';
-
-// Pure API usage
-const apiResults = await apiService.processTwoStatements(file1, file2);
-
-// Manual categorization
-const category = TransactionCategorizer.categorizeTransaction('STARBUCKS COFFEE');
-// Returns: 'Food & Dining'
-
-// Get available categories
-const categories = TransactionCategorizer.getAvailableCategories();
-```
-
-### Additional Endpoints
-
-#### Get User Credits
-```
-GET /user
-Authorization: {API_KEY}
-Response: { user: {...}, credits: { paidCredits: number, freeCredits: number }, ... }
-```
-
-#### Set Password (for protected PDFs)
-```
-POST /BankStatement/setPassword
-Authorization: {API_KEY}
-Content-Type: application/json
-
-Body: { passwords: [{ uuid: string, password: string }] }
-```
-
-## Testing
-
-The new architecture makes testing much easier:
-
-```typescript
-// Test categorization
-import { TransactionCategorizer } from '../services/categorizer';
-expect(TransactionCategorizer.categorizeTransaction('SHELL GAS STATION')).toBe('Transportation');
-
-// Test statement processing
-import { StatementProcessor } from '../services/statementProcessor';
-const result = StatementProcessor.convertToInternalFormat(apiResponse, 'test.pdf');
-expect(result.transactions).toHaveLength(10);
-
-// Test comparison
-import { ComparisonEngine } from '../services/comparisonEngine';
-const comparison = ComparisonEngine.compareStatements(statement1, statement2);
-expect(comparison.comparison).toHaveLength(5);
-```
-
-## Migration from Old Architecture
-
-The old `parseTwoStatementsAndCompare` method has been replaced with the new pipeline. The hook (`useApiComparison`) maintains the same interface, so components don't need changes.
-
-**Before:**
-```typescript
-const result = await apiService.parseTwoStatementsAndCompare(file1, file2);
-```
-
-**After (internal to hook):**
-```typescript
-const apiResults = await apiService.processTwoStatements(file1, file2);
-const statement1 = StatementProcessor.convertToInternalFormat(apiResults.file1Result, file1.name);
-const statement2 = StatementProcessor.convertToInternalFormat(apiResults.file2Result, file2.name);
-const result = ComparisonEngine.compareStatements(statement1, statement2);
-```
-
-This provides the same functionality with much better maintainability and extensibility.

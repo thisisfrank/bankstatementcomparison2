@@ -55,15 +55,17 @@ export interface UploadedFile {
 }
 
 // API Configuration - Based on API Documentation
-const API_KEY = import.meta.env.VITE_PDF_PARSER_API_KEY || 'api-AB7psQuumDdjVHLTPYMDghH2xUgaKcuJZVvwReMMsxM9iQBaYJg/BrelRUX07neH';
+const BSC_AUTH_TOKEN = import.meta.env.VITE_BSC_AUTH_TOKEN || '';
 const API_BASE_URL = import.meta.env.VITE_PDF_PARSER_API_URL || 'https://api2.bankstatementconverter.com/api/v1';
 
-// Debug API key configuration
+// Debug API configuration
 console.log('🔧 API Configuration Debug:', {
-  hasEnvVar: !!import.meta.env.VITE_PDF_PARSER_API_KEY,
-  envVarLength: import.meta.env.VITE_PDF_PARSER_API_KEY?.length || 0,
-  finalApiKeyLength: API_KEY.length,
-  finalApiKeyPrefix: API_KEY.substring(0, 10) + '...',
+  hasApiKey: !!import.meta.env.VITE_PDF_PARSER_API_KEY,
+  apiKeyLength: import.meta.env.VITE_PDF_PARSER_API_KEY?.length || 0,
+  apiKeyPrefix: import.meta.env.VITE_PDF_PARSER_API_KEY ? import.meta.env.VITE_PDF_PARSER_API_KEY.substring(0, 20) + '...' : 'None',
+  hasAuthToken: !!BSC_AUTH_TOKEN,
+  authTokenLength: BSC_AUTH_TOKEN?.length || 0,
+  authTokenPrefix: BSC_AUTH_TOKEN ? BSC_AUTH_TOKEN.substring(0, 20) + '...' : 'None',
   apiBaseUrl: API_BASE_URL
 });
 
@@ -78,126 +80,141 @@ export class ApiService {
     retryCount: number = 0,
     processStep?: string
   ): Promise<T> {
-    // Enhanced API key validation
-    if (!API_KEY || API_KEY.trim() === '') {
-      throw new Error('API key not configured or empty');
-    }
-
-    // Validate API key format
-    if (!API_KEY.startsWith('api-')) {
-      console.warn('⚠️ API key may not be in correct format. Expected to start with "api-"');
+    // Check if we have either API key or JWT token
+    const hasApiKey = import.meta.env.VITE_PDF_PARSER_API_KEY && import.meta.env.VITE_PDF_PARSER_API_KEY.trim() !== '';
+    const hasJwtToken = BSC_AUTH_TOKEN && BSC_AUTH_TOKEN.trim() !== '';
+    
+    if (!hasApiKey && !hasJwtToken) {
+      throw new Error('Neither API key nor JWT authentication token configured');
     }
 
     const url = `${API_BASE_URL}${endpoint}`;
     
-    // Based on API Documentation: Direct API key as Authorization header
-    const fullHeaders = {
-      'Authorization': API_KEY, // As documented: Authorization: api-AB7psQuu...
-      ...options.headers,
-    };
+    // Define all possible authentication patterns to try
+    const authPatterns = [];
     
-    // Try alternative Authorization header format if the first one doesn't work
-    const alternativeHeaders = {
-      'Authorization': `Bearer ${API_KEY}`, // Alternative: Bearer token format
-      ...options.headers,
-    };
+    if (hasApiKey) {
+      const apiKey = import.meta.env.VITE_PDF_PARSER_API_KEY;
+      authPatterns.push(
+        { name: 'Direct API Key', headers: { 'Authorization': apiKey } },
+        { name: 'Bearer + API Key', headers: { 'Authorization': `Bearer ${apiKey}` } },
+        { name: 'X-API-Key Header', headers: { 'X-API-Key': apiKey } },
+        { name: 'apiKey Query Param', headers: {}, queryParam: `?apiKey=${encodeURIComponent(apiKey)}` },
+        { name: 'Custom API Key Header', headers: { 'X-Auth-Key': apiKey } },
+        { name: 'API Key in Body', headers: {}, bodyOverride: { apiKey } }
+      );
+    }
+    
+    if (hasJwtToken) {
+      authPatterns.push(
+        { name: 'Bearer JWT', headers: { 'Authorization': `Bearer ${BSC_AUTH_TOKEN}` } },
+        { name: 'Direct JWT', headers: { 'Authorization': BSC_AUTH_TOKEN } },
+        { name: 'X-Auth-Token Header', headers: { 'X-Auth-Token': BSC_AUTH_TOKEN } },
+        { name: 'JWT Query Param', headers: {}, queryParam: `?token=${encodeURIComponent(BSC_AUTH_TOKEN)}` },
+        { name: 'Custom JWT Header', headers: { 'X-JWT-Token': BSC_AUTH_TOKEN } }
+      );
+    }
     
     console.log('🔑 API Request:', {
       url,
       method: options.method || 'GET',
-      hasApiKey: !!API_KEY,
-      apiKeyLength: API_KEY.length,
-      apiKeyPrefix: API_KEY.substring(0, 10) + '...',
+      hasApiKey,
+      hasJwtToken,
+      apiKeyLength: import.meta.env.VITE_PDF_PARSER_API_KEY?.length || 0,
+      jwtTokenLength: BSC_AUTH_TOKEN?.length || 0,
+      authPatternsCount: authPatterns.length,
       retryCount,
       processStep
     });
     
-    // Add detailed request debugging
-    console.log('🔍 Detailed Request Debug:', {
-      fullUrl: url,
-      method: options.method || 'GET',
-      headers: fullHeaders,
-      alternativeHeaders: alternativeHeaders,
-      hasBody: !!options.body,
-      bodyType: options.body ? (options.body instanceof FormData ? 'FormData' : 'Other') : 'None',
-      apiKeyLength: API_KEY ? API_KEY.length : 0,
-      apiKeyPrefix: API_KEY ? API_KEY.substring(0, 10) + '...' : 'None'
-    });
-    
-    try {
-      const response = await fetch(url, {
-        headers: fullHeaders,
-        ...options,
-      });
-
-      // Add response debugging
-      console.log('📡 API Response Debug:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        url: response.url,
-        redirected: response.redirected,
-        type: response.type
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ API Error:', response.status, errorText);
+    // Try each authentication pattern
+    for (let i = 0; i < authPatterns.length; i++) {
+      const pattern = authPatterns[i];
+      const patternUrl = pattern.queryParam ? `${url}${pattern.queryParam}` : url;
+      
+      console.log(`🔑 Trying authentication pattern ${i + 1}/${authPatterns.length}: ${pattern.name}`);
+      
+      try {
+        const requestOptions: RequestInit = { ...options };
         
-        // Enhanced error handling for authentication issues
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        // Merge headers
+        requestOptions.headers = {
+          ...(pattern.headers as Record<string, string>),
+          ...(options.headers as Record<string, string> || {})
+        };
         
-        if (response.status === 401) {
-          errorMessage = `Authentication failed (401): Invalid or expired API key. Key length: ${API_KEY.length}, Prefix: ${API_KEY.substring(0, 10)}...`;
-        } else if (response.status === 403) {
-          errorMessage = `Access denied (403): API key may be invalid or insufficient permissions. Key length: ${API_KEY.length}, Prefix: ${API_KEY.substring(0, 10)}...`;
-        } else if (response.status === 400) {
-          // Parse the error response to provide better error messages
-          try {
-            const errorData = JSON.parse(errorText);
-            if (errorData.errorType === 'ANONYMOUS_NOT_ENOUGH_CREDITS') {
-              errorMessage = `Credits limit exceeded (400): ${errorData.message}. Please upgrade your plan or try again tomorrow.`;
-            } else if (errorData.errorType === 'NOT_ENOUGH_CREDITS') {
-              errorMessage = `Insufficient credits (400): ${errorData.message}. Please add more credits to your account.`;
-            } else {
-              errorMessage = `Bad request (400): ${errorData.message || 'Invalid request format or parameters'}`;
+        // Handle body override if needed
+        if (pattern.bodyOverride) {
+          if (options.body) {
+            // If there's already a body, merge the apiKey into it
+            if (options.body instanceof FormData) {
+              requestOptions.body = options.body;
+              (requestOptions.body as FormData).append('apiKey', pattern.bodyOverride.apiKey);
+            } else if (typeof options.body === 'string') {
+              try {
+                const bodyObj = JSON.parse(options.body);
+                bodyObj.apiKey = pattern.bodyOverride.apiKey;
+                requestOptions.body = JSON.stringify(bodyObj);
+              } catch {
+                // If we can't parse as JSON, append to string
+                requestOptions.body = `${options.body}&apiKey=${pattern.bodyOverride.apiKey}`;
+              }
             }
-          } catch (parseError) {
-            // If we can't parse the error response, use the raw text
-            errorMessage = `Bad request (400): ${errorText}`;
+          } else {
+            requestOptions.body = JSON.stringify(pattern.bodyOverride);
+            if (requestOptions.headers) {
+              (requestOptions.headers as Record<string, string>)['Content-Type'] = 'application/json';
+            }
           }
         }
         
-        // Add process step context if available
-        if (processStep) {
-          errorMessage = `${processStep} failed: ${errorMessage}`;
+        console.log('🔍 Pattern Debug:', {
+          pattern: pattern.name,
+          url: patternUrl,
+          headers: requestOptions.headers,
+          hasBody: !!requestOptions.body,
+          bodyType: requestOptions.body ? (requestOptions.body instanceof FormData ? 'FormData' : 'Other') : 'None'
+        });
+        
+        const response = await fetch(patternUrl, requestOptions);
+        
+        // Log response details
+        console.log('📡 Pattern Response:', {
+          pattern: pattern.name,
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url
+        });
+        
+        if (response.ok) {
+          console.log(`✅ Authentication pattern "${pattern.name}" SUCCESSFUL!`);
+          return await response.json();
         }
         
-        // Retry logic for intermittent authorization issues
-        const isAuthError = response.status === 401 || response.status === 403;
-        const maxRetries = 3;
-        const shouldRetry = isAuthError && retryCount < maxRetries;
+        // If not successful, log the error but continue to next pattern
+        const errorText = await response.text();
+        console.log(`⚠️ Pattern "${pattern.name}" failed with status ${response.status}: ${errorText}`);
         
-        if (shouldRetry) {
-          console.log(`🔄 Retrying due to auth error (${retryCount + 1}/${maxRetries})...`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
-          return this.makeRequest(endpoint, options, retryCount + 1, processStep);
+        // If this is a 401/403, it's an auth issue, but if it's 400, it might be a different problem
+        if (response.status === 401 || response.status === 403) {
+          console.log(`🔒 Pattern "${pattern.name}" failed due to authentication (${response.status})`);
+        } else if (response.status === 400) {
+          console.log(`📝 Pattern "${pattern.name}" failed due to request format (${response.status})`);
         }
         
-        throw new Error(errorMessage);
+      } catch (error) {
+        console.log(`❌ Pattern "${pattern.name}" failed with error:`, error);
       }
-
-      return await response.json();
-    } catch (error) {
-      if (error instanceof Error) {
-        // Add process step context to existing errors
-        if (processStep && !error.message.includes(processStep)) {
-          error.message = `${processStep} failed: ${error.message}`;
-        }
-        throw error;
-      }
-      throw new Error(processStep ? `${processStep} failed: Unknown error` : 'Unknown error');
     }
+    
+    // If we get here, all patterns failed
+    const errorMessage = `All ${authPatterns.length} authentication patterns failed. This suggests either:\n` +
+      `1. All authentication methods are invalid\n` +
+      `2. There's a server-side bug (most likely)\n` +
+      `3. The API expects a different format not covered here`;
+    
+    console.error('💥 All authentication patterns exhausted:', errorMessage);
+    throw new Error(errorMessage);
   }
 
   // Upload PDF files - Based on API Documentation: Multipart Form Data
@@ -257,15 +274,10 @@ export class ApiService {
     console.log('🔄 Converting statements:', uuids);
     
     try {
-      // Try multiple authentication approaches since the API has a bug
-      // with the Authorization header on the convert endpoint
-      const url = `/BankStatement/convert?format=JSON&apiKey=${encodeURIComponent(API_KEY)}`;
-      
-      // Try with Bearer token format instead of direct API key
-      const response = await this.makeRequest<any[]>(url, {
+      // Use JWT authentication for the convert endpoint
+      const response = await this.makeRequest<any[]>(`/BankStatement/convert?format=JSON`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(uuids)
@@ -274,25 +286,8 @@ export class ApiService {
       console.log('✅ Conversion successful for', uuids.length, 'statements');
       return response;
     } catch (error) {
-      console.error('❌ First conversion attempt failed, trying fallback method:', error);
-      
-      // Fallback: Try with the original direct API key format
-      try {
-        const fallbackUrl = `/BankStatement/convert?format=JSON`;
-        const fallbackResponse = await this.makeRequest<any[]>(fallbackUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(uuids)
-        }, 0, 'Statement Conversion (Fallback)');
-        
-        console.log('✅ Fallback conversion successful for', uuids.length, 'statements');
-        return fallbackResponse;
-      } catch (fallbackError) {
-        console.error('❌ Both conversion methods failed:', fallbackError);
-        throw fallbackError;
-      }
+      console.error('❌ Statement conversion failed:', error);
+      throw error;
     }
   }
 
@@ -484,13 +479,26 @@ export class ApiService {
     }
   }
 
-  // Get current API key info (for debugging)
-  getApiKeyInfo(): { hasKey: boolean; length: number; prefix: string; isEnvVar: boolean } {
+  // Get authentication information for debugging
+  getAuthInfo(): { 
+    hasApiKey: boolean; 
+    apiKeyLength: number; 
+    apiKeyPrefix: string; 
+    hasJwtToken: boolean;
+    jwtTokenLength: number; 
+    jwtTokenPrefix: string; 
+    isApiKeyEnvVar: boolean;
+    isJwtEnvVar: boolean;
+  } {
     return {
-      hasKey: !!API_KEY,
-      length: API_KEY.length,
-      prefix: API_KEY.substring(0, 10) + '...',
-      isEnvVar: !!import.meta.env.VITE_PDF_PARSER_API_KEY
+      hasApiKey: !!import.meta.env.VITE_PDF_PARSER_API_KEY,
+      apiKeyLength: import.meta.env.VITE_PDF_PARSER_API_KEY?.length || 0,
+      apiKeyPrefix: import.meta.env.VITE_PDF_PARSER_API_KEY ? import.meta.env.VITE_PDF_PARSER_API_KEY.substring(0, 20) + '...' : 'None',
+      hasJwtToken: !!BSC_AUTH_TOKEN,
+      jwtTokenLength: BSC_AUTH_TOKEN?.length || 0,
+      jwtTokenPrefix: BSC_AUTH_TOKEN ? BSC_AUTH_TOKEN.substring(0, 20) + '...' : 'None',
+      isApiKeyEnvVar: !!import.meta.env.VITE_PDF_PARSER_API_KEY,
+      isJwtEnvVar: !!import.meta.env.VITE_BSC_AUTH_TOKEN
     };
   }
 

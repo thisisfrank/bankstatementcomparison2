@@ -295,9 +295,9 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
       const accountInfo = await apiService.getAccountInfo();
       console.log('👤 Account Info:', accountInfo);
       
-      // Also check API key info
-      const apiKeyInfo = apiService.getApiKeyInfo();
-      console.log('🔑 API Key Info:', apiKeyInfo);
+      // Also check authentication info
+      const authInfo = apiService.getAuthInfo();
+      console.log('🔑 Auth Info:', authInfo);
       
       alert(`Account Type: ${accountInfo.accountType}\nPaid Credits: ${accountInfo.paidCredits}\nFree Credits: ${accountInfo.freeCredits}\nUnlimited: ${accountInfo.unlimitedCredits}`);
     } catch (error) {
