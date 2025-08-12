@@ -222,24 +222,7 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
         </div>
       )}
 
-      {/* Empty State for New Users */}
-      {history.length === 0 && (
-        <div className={`text-center py-16 rounded-xl ${
-          isDark ? 'bg-gray-800' : 'bg-white'
-        } shadow-lg`}>
-          <Clock className={isDark ? 'h-20 w-20 mx-auto mb-6 text-gray-600' : 'h-20 w-20 mx-auto mb-6 text-gray-400'} />
-          <h3 className={isDark ? 'text-2xl font-semibold mb-4 text-gray-300' : 'text-2xl font-semibold mb-4 text-gray-700'}>
-            No comparison history yet
-          </h3>
-          <p className={isDark ? 'mb-6 text-gray-500' : 'mb-6 text-gray-500'}>
-            Your completed comparisons will appear here for easy access and management
-          </p>
-          <button className={isDark ? 'inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium bg-blue-600 hover:bg-blue-700 text-white' : 'inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium bg-blue-600 hover:bg-blue-700 text-white'}>
-            <BarChart3 className="h-5 w-5" />
-            Create Your First Comparison
-          </button>
-        </div>
-      )}
+
     </div>
   );
 }

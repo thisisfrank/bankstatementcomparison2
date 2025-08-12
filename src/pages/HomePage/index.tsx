@@ -288,23 +288,7 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     setEditingLabel(null);
   };
 
-  // Debug function to check account info
-  const handleDebugAccount = async () => {
-    try {
-      console.log('🔍 Debugging account information...');
-      const accountInfo = await apiService.getAccountInfo();
-      console.log('👤 Account Info:', accountInfo);
-      
-      // Also check authentication info
-      const authInfo = apiService.getAuthInfo();
-      console.log('🔑 Auth Info:', authInfo);
-      
-      alert(`Account Type: ${accountInfo.accountType}\nPaid Credits: ${accountInfo.paidCredits}\nFree Credits: ${accountInfo.freeCredits}\nUnlimited: ${accountInfo.unlimitedCredits}`);
-    } catch (error) {
-      console.error('❌ Debug failed:', error);
-      alert(`Debug failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
+
 
 
   const bothFilesUploaded = uploadedFiles.statement1?.status === 'ready' && uploadedFiles.statement2?.status === 'ready';
@@ -315,20 +299,7 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
         <>
           <HeroSection isDark={isDark} />
           
-          {/* Debug Section - Only show in development */}
-          {import.meta.env.DEV && (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-yellow-800 mb-2">🔧 Development Debug Tools</h3>
-                <button
-                  onClick={handleDebugAccount}
-                  className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm font-medium transition-colors"
-                >
-                  Check Account Info
-                </button>
-              </div>
-            </div>
-          )}
+
 
           <UploadSection
             isDark={isDark}
