@@ -38,228 +38,190 @@ const mockComparison: CategoryComparison[] = [
   {
     category: 'Income',
     icon: <Briefcase className="h-5 w-5" />,
-    statement1: 2400.00,
-    statement2: 5713.21,
-    difference: 3313.21,
-    percentChange: 138.1,
+    statement1: 3850.00,
+    statement2: 4120.00,
+    difference: 270.00,
+    percentChange: 7.0,
     transactions1: [
-      { id: 'income-1-1', date: '2025-01-15', description: 'Upwork Escrow Payment', amount: 1200.00, category: 'Income', type: 'credit' as const },
-      { id: 'income-1-2', date: '2025-01-30', description: 'Stripe Transfer', amount: 1200.00, category: 'Income', type: 'credit' as const }
+      { id: 'income-1-1', date: '2025-01-15', description: 'Stripe Payment Processing', amount: 1850.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-1-2', date: '2025-01-30', description: 'PayPal Transfer', amount: 2000.00, category: 'Income', type: 'credit' as const }
     ],
     transactions2: [
-      { id: 'income-2-1', date: '2025-02-03', description: 'Paypal Transfer', amount: 964.61, category: 'Income', type: 'credit' as const },
-      { id: 'income-2-2', date: '2025-02-03', description: 'Online Transfer', amount: 400.00, category: 'Income', type: 'credit' as const },
-      { id: 'income-2-3', date: '2025-02-06', description: 'Upwork Escrow Payment', amount: 810.00, category: 'Income', type: 'credit' as const },
-      { id: 'income-2-4', date: '2025-02-10', description: 'Stripe Transfer', amount: 193.90, category: 'Income', type: 'credit' as const },
-      { id: 'income-2-5', date: '2025-02-13', description: 'Upwork Escrow Payment', amount: 630.00, category: 'Income', type: 'credit' as const },
-      { id: 'income-2-6', date: '2025-02-18', description: 'ATM Cash Deposit', amount: 295.00, category: 'Income', type: 'credit' as const },
-      { id: 'income-2-7', date: '2025-02-20', description: 'Upwork Escrow Payment', amount: 810.00, category: 'Income', type: 'credit' as const },
-      { id: 'income-2-8', date: '2025-02-27', description: 'Upwork Escrow Payment', amount: 630.00, category: 'Income', type: 'credit' as const },
-      { id: 'income-2-9', date: '2025-02-28', description: 'Stripe Transfer', amount: 970.70, category: 'Income', type: 'credit' as const }
+      { id: 'income-2-1', date: '2025-02-03', description: 'Square Payment', amount: 1680.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-2', date: '2025-02-10', description: 'Stripe Payment Processing', amount: 1950.00, category: 'Income', type: 'credit' as const },
+      { id: 'income-2-3', date: '2025-02-18', description: 'Direct Deposit', amount: 490.00, category: 'Income', type: 'credit' as const }
     ]
   },
   {
     category: 'Food & Dining',
     icon: <Utensils className="h-5 w-5" />,
-    statement1: 450.00,
-    statement2: 680.00,
-    difference: 230.00,
-    percentChange: 51.1,
+    statement1: 445.00,
+    statement2: 487.00,
+    difference: 42.00,
+    percentChange: 9.4,
     transactions1: [
-      { id: 'food-1-1', date: '2025-01-05', description: 'Starbucks', amount: 4.59, category: 'Food & Dining', type: 'debit' as const },
-      { id: 'food-1-2', date: '2025-01-12', description: 'McDonald\'s', amount: 12.25, category: 'Food & Dining', type: 'debit' as const },
-      { id: 'food-1-3', date: '2025-01-18', description: 'Salad and Go', amount: 13.36, category: 'Food & Dining', type: 'debit' as const },
-      { id: 'food-1-4', date: '2025-01-25', description: 'Panda Express', amount: 11.15, category: 'Food & Dining', type: 'debit' as const },
-      { id: 'food-1-5', date: '2025-01-28', description: 'Wingstop', amount: 16.02, category: 'Food & Dining', type: 'debit' as const }
+      { id: 'food-1-1', date: '2025-01-05', description: 'McDonald\'s', amount: 12.45, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-1-2', date: '2025-01-12', description: 'Starbucks', amount: 5.89, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-1-3', date: '2025-01-18', description: 'Chipotle', amount: 18.75, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-1-4', date: '2025-01-25', description: 'Pizza Hut', amount: 24.99, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-1-5', date: '2025-01-28', description: 'Subway', amount: 11.50, category: 'Food & Dining', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2025-02-03', description: 'McDonald\'s', amount: 12.25, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-03', description: 'Tacos El Gordo', amount: 16.98, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-03', description: 'Shake Shack', amount: 21.64, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-04', description: 'Starbucks', amount: 4.59, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-04', description: 'Salad and Go', amount: 13.36, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-05', description: 'Salad and Go', amount: 8.95, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-05', description: 'NEW Asian Fusion', amount: 15.73, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-07', description: 'Raising Canes', amount: 11.23, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-07', description: 'Papa Chevos Taco', amount: 16.86, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-10', description: 'Panda Express', amount: 11.15, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-10', description: 'AZ Pho Grill', amount: 40.35, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-11', description: 'Wingstop', amount: 16.02, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-14', description: 'Chick-Fil-A', amount: 11.77, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-18', description: 'McDonald\'s', amount: 11.44, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-18', description: 'McDonald\'s', amount: 5.40, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-18', description: 'NEW Asian Fusion', amount: 16.27, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-18', description: 'Salad and Go', amount: 9.49, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-20', description: 'McDonald\'s', amount: 11.76, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-21', description: 'Salad and Go', amount: 9.06, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-24', description: 'Buffalo Wild Wings', amount: 38.72, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-24', description: 'Popeyes', amount: 12.85, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-27', description: 'Filibertos Mexican', amount: 17.34, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-27', description: 'Salad and Go', amount: 7.34, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-27', description: 'KFC', amount: 14.22, category: 'Food & Dining', type: 'debit' as const },
-      { date: '2025-02-28', description: 'Filibertos Mexican', amount: 13.77, category: 'Food & Dining', type: 'debit' as const }
+      { id: 'food-2-1', date: '2025-02-03', description: 'Burger King', amount: 14.25, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-2-2', date: '2025-02-05', description: 'Taco Bell', amount: 16.80, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-2-3', date: '2025-02-07', description: 'KFC', amount: 19.95, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-2-4', date: '2025-02-10', description: 'Wendy\'s', amount: 13.45, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-2-5', date: '2025-02-14', description: 'Domino\'s Pizza', amount: 28.50, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-2-6', date: '2025-02-18', description: 'Arby\'s', amount: 15.75, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-2-7', date: '2025-02-21', description: 'Popeyes', amount: 17.25, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-2-8', date: '2025-02-24', description: 'Little Caesars', amount: 22.99, category: 'Food & Dining', type: 'debit' as const },
+      { id: 'food-2-9', date: '2025-02-27', description: 'Sonic Drive-In', amount: 18.50, category: 'Food & Dining', type: 'debit' as const }
     ]
   },
   {
     category: 'Transportation',
     icon: <Car className="h-5 w-5" />,
-    statement1: 180.00,
-    statement2: 420.00,
-    difference: 240.00,
-    percentChange: 133.3,
+    statement1: 287.00,
+    statement2: 312.00,
+    difference: 25.00,
+    percentChange: 8.7,
     transactions1: [
-      { date: '2025-01-08', description: 'Shell Gas Station', amount: 45.50, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-01-15', description: 'Uber Trip', amount: 40.38, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-01-22', description: 'Uber Trip', amount: 17.95, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-01-29', description: 'Arco Gas Station', amount: 51.78, category: 'Transportation', type: 'debit' as const }
+      { id: 'transport-1-1', date: '2025-01-08', description: 'Shell Gas Station', amount: 45.50, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-1-2', date: '2025-01-15', description: 'Uber Ride', amount: 28.75, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-1-3', date: '2025-01-22', description: 'Exxon Gas Station', amount: 52.25, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-1-4', date: '2025-01-29', description: 'BP Gas Station', amount: 48.00, category: 'Transportation', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2025-02-03', description: 'Uber Trip', amount: 40.38, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-03', description: 'Uber Trip', amount: 17.95, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-03', description: 'Shell Gas Station', amount: 31.41, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-04', description: 'Uber Trip', amount: 10.93, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-05', description: 'Los Perez Tire Shop', amount: 62.40, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-05', description: 'Autozone', amount: 15.08, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-05', description: 'Circle K Gas', amount: 35.04, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-10', description: 'Ls Bikemasters', amount: 31.24, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-10', description: 'Ace Parking', amount: 10.00, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-10', description: 'Circle K Gas', amount: 35.02, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-11', description: 'Circle K Gas', amount: 7.79, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-14', description: 'Circle K Gas', amount: 12.74, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-14', description: 'Autozone', amount: 65.51, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-18', description: 'Clean Freak Car Wash', amount: 14.00, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-18', description: 'Arco Gas Station', amount: 51.78, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-24', description: 'Circle K Gas', amount: 3.24, category: 'Transportation', type: 'debit' as const },
-      { date: '2025-02-24', description: 'Circle K Gas', amount: 35.05, category: 'Transportation', type: 'debit' as const }
+      { id: 'transport-2-1', date: '2025-02-03', description: 'Chevron Gas Station', amount: 47.80, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-2-2', date: '2025-02-05', description: 'Uber Ride', amount: 32.45, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-2-3', date: '2025-02-07', description: 'Mobil Gas Station', amount: 51.20, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-2-4', date: '2025-02-10', description: 'Lyft Ride', amount: 29.90, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-2-5', date: '2025-02-14', description: 'Circle K Gas', amount: 38.75, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-2-6', date: '2025-02-18', description: '7-Eleven Gas', amount: 42.30, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-2-7', date: '2025-02-21', description: 'Uber Ride', amount: 25.60, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-2-8', date: '2025-02-24', description: 'Speedway Gas', amount: 44.15, category: 'Transportation', type: 'debit' as const },
+      { id: 'transport-2-9', date: '2025-02-27', description: 'Lyft Ride', amount: 27.85, category: 'Transportation', type: 'debit' as const }
     ]
   },
   {
     category: 'Shopping',
     icon: <ShoppingBag className="h-5 w-5" />,
-    statement1: 120.00,
-    statement2: 280.00,
-    difference: 160.00,
-    percentChange: 133.3,
+    statement1: 234.00,
+    statement2: 267.00,
+    difference: 33.00,
+    percentChange: 14.1,
     transactions1: [
-      { date: '2025-01-10', description: 'Target', amount: 27.81, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-01-18', description: 'Barnes and Noble', amount: 9.75, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-01-25', description: 'Barnes and Noble', amount: 2.98, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-01-28', description: 'Dollar Tree', amount: 2.54, category: 'Shopping', type: 'debit' as const }
+      { id: 'shopping-1-1', date: '2025-01-10', description: 'Target', amount: 45.75, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-1-2', date: '2025-01-18', description: 'Walmart', amount: 67.20, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-1-3', date: '2025-01-25', description: 'Amazon.com', amount: 32.45, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-1-4', date: '2025-01-28', description: 'Best Buy', amount: 34.60, category: 'Shopping', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2025-02-03', description: 'Gravitate Smoke Shop', amount: 12.68, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-06', description: 'Wal-Mart Super Center', amount: 48.48, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-06', description: 'Dollar Tree', amount: 2.54, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-07', description: 'Barnes and Noble', amount: 9.75, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-10', description: 'Gravitate Smoke Shop', amount: 7.81, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-10', description: 'Target', amount: 27.81, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-10', description: 'Barnes and Noble', amount: 2.98, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-18', description: 'Barnes and Noble', amount: 2.98, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-18', description: 'Barnes and Noble', amount: 2.97, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-21', description: 'Frys Food', amount: 42.64, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-24', description: 'Barnes and Noble', amount: 4.27, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-25', description: 'Frys Food', amount: 16.22, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-25', description: 'Dollar Tree', amount: 6.09, category: 'Shopping', type: 'debit' as const },
-      { date: '2025-02-27', description: 'Frys Food', amount: 50.04, category: 'Shopping', type: 'debit' as const }
+      { id: 'shopping-2-1', date: '2025-02-03', description: 'Home Depot', amount: 89.95, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-2-2', date: '2025-02-06', description: 'Costco', amount: 156.80, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-2-3', date: '2025-02-10', description: 'Target', amount: 38.25, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-2-4', date: '2025-02-14', description: 'Amazon.com', amount: 27.50, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-2-5', date: '2025-02-18', description: 'Macy\'s', amount: 89.99, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-2-6', date: '2025-02-21', description: 'Kohl\'s', amount: 67.45, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-2-7', date: '2025-02-24', description: 'Old Navy', amount: 45.20, category: 'Shopping', type: 'debit' as const },
+      { id: 'shopping-2-8', date: '2025-02-27', description: 'Gap', amount: 78.90, category: 'Shopping', type: 'debit' as const }
     ]
   },
   {
     category: 'Healthcare',
     icon: <Heart className="h-5 w-5" />,
     statement1: 0.00,
-    statement2: 820.00,
-    difference: 820.00,
+    statement2: 387.00,
+    difference: 387.00,
     percentChange: 100,
     transactions1: [],
     transactions2: [
-      { date: '2025-02-18', description: 'Dr. Kerry Zang', amount: 820.00, category: 'Healthcare', type: 'debit' as const }
+      { id: 'health-2-1', date: '2025-02-05', description: 'CVS Pharmacy', amount: 45.75, category: 'Healthcare', type: 'debit' as const },
+      { id: 'health-2-2', date: '2025-02-12', description: 'Walgreens', amount: 32.50, category: 'Healthcare', type: 'debit' as const },
+      { id: 'health-2-3', date: '2025-02-18', description: 'Optometrist Visit', amount: 125.00, category: 'Healthcare', type: 'debit' as const },
+      { id: 'health-2-4', date: '2025-02-25', description: 'Dental Checkup', amount: 184.75, category: 'Healthcare', type: 'debit' as const }
     ]
   },
   {
     category: 'Business & Professional',
     icon: <Briefcase className="h-5 w-5" />,
-    statement1: 85.00,
-    statement2: 120.00,
-    difference: 35.00,
-    percentChange: 41.2,
+    statement1: 118.00,
+    statement2: 134.00,
+    difference: 16.00,
+    percentChange: 13.6,
     transactions1: [
-      { date: '2025-01-07', description: 'Adobe Subscription', amount: 64.97, category: 'Business & Professional', type: 'debit' as const },
-      { date: '2025-01-21', description: 'Anthropic Subscription', amount: 16.17, category: 'Business & Professional', type: 'debit' as const }
+      { id: 'business-1-1', date: '2025-01-07', description: 'Adobe Creative Cloud', amount: 52.99, category: 'Business & Professional', type: 'debit' as const },
+      { id: 'business-1-2', date: '2025-01-21', description: 'Notion Premium', amount: 8.00, category: 'Business & Professional', type: 'debit' as const },
+      { id: 'business-1-3', date: '2025-01-28', description: 'Slack Pro', amount: 34.00, category: 'Business & Professional', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2025-02-03', description: 'X Corp Payment', amount: 8.62, category: 'Business & Professional', type: 'debit' as const },
-      { date: '2025-02-07', description: 'Adobe Subscription', amount: 64.97, category: 'Business & Professional', type: 'debit' as const },
-      { date: '2025-02-10', description: 'Adobe Subscription', amount: 64.97, category: 'Business & Professional', type: 'debit' as const },
-      { date: '2025-02-21', description: 'Anthropic Subscription', amount: 16.17, category: 'Business & Professional', type: 'debit' as const },
-      { date: '2025-02-18', description: 'Dropbox Payment', amount: 12.93, category: 'Business & Professional', type: 'debit' as const }
+      { id: 'business-2-1', date: '2025-02-03', description: 'Adobe Creative Cloud', amount: 52.99, category: 'Business & Professional', type: 'debit' as const },
+      { id: 'business-2-2', date: '2025-02-07', description: 'Asana Premium', amount: 10.99, category: 'Business & Professional', type: 'debit' as const },
+      { id: 'business-2-3', date: '2025-02-14', description: 'Trello Business', amount: 12.50, category: 'Business & Professional', type: 'debit' as const },
+      { id: 'business-2-4', date: '2025-02-21', description: 'Notion Premium', amount: 8.00, category: 'Business & Professional', type: 'debit' as const },
+      { id: 'business-2-5', date: '2025-02-28', description: 'Slack Pro', amount: 34.00, category: 'Business & Professional', type: 'debit' as const }
     ]
   },
   {
     category: 'Subscriptions',
     icon: <CreditCard className="h-5 w-5" />,
-    statement1: 200.00,
-    statement2: 350.00,
-    difference: 150.00,
-    percentChange: 75.0,
+    statement1: 89.00,
+    statement2: 112.00,
+    difference: 23.00,
+    percentChange: 25.8,
     transactions1: [
-      { date: '2025-01-15', description: 'Netflix Subscription', amount: 15.99, category: 'Subscriptions', type: 'debit' as const },
-      { date: '2025-01-30', description: 'Spotify Premium', amount: 9.99, category: 'Subscriptions', type: 'debit' as const }
+      { id: 'subscription-1-1', date: '2025-01-15', description: 'Netflix Premium', amount: 19.99, category: 'Subscriptions', type: 'debit' as const },
+      { id: 'subscription-1-2', date: '2025-01-30', description: 'Spotify Premium', amount: 9.99, category: 'Subscriptions', type: 'debit' as const },
+      { id: 'subscription-1-3', date: '2025-01-30', description: 'Hulu Ad-Free', amount: 17.99, category: 'Subscriptions', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2025-02-04', description: 'Centurylink Payment', amount: 55.78, category: 'Subscriptions', type: 'debit' as const },
-      { date: '2025-02-19', description: 'Amazon Prime', amount: 16.16, category: 'Subscriptions', type: 'debit' as const },
-      { date: '2025-02-19', description: 'Verizon Wireless', amount: 110.26, category: 'Subscriptions', type: 'debit' as const },
-      { date: '2025-02-20', description: 'Apple.Com Bill', amount: 1.07, category: 'Subscriptions', type: 'debit' as const },
-      { date: '2025-02-28', description: 'Progressive Insurance', amount: 136.00, category: 'Subscriptions', type: 'debit' as const },
-      { date: '2025-02-18', description: 'Eos Fitness', amount: 10.14, category: 'Subscriptions', type: 'debit' as const },
-      { date: '2025-02-28', description: 'Eos Fitness', amount: 5.00, category: 'Subscriptions', type: 'debit' as const }
+      { id: 'subscription-2-1', date: '2025-02-04', description: 'Netflix Premium', amount: 19.99, category: 'Subscriptions', type: 'debit' as const },
+      { id: 'subscription-2-2', date: '2025-02-04', description: 'Spotify Premium', amount: 9.99, category: 'Subscriptions', type: 'debit' as const },
+      { id: 'subscription-2-3', date: '2025-02-04', description: 'Hulu Ad-Free', amount: 17.99, category: 'Subscriptions', type: 'debit' as const },
+      { id: 'subscription-2-4', date: '2025-02-19', description: 'Amazon Prime', amount: 14.99, category: 'Subscriptions', type: 'debit' as const },
+      { id: 'subscription-2-5', date: '2025-02-19', description: 'Disney+ Premium', amount: 13.99, category: 'Subscriptions', type: 'debit' as const },
+      { id: 'subscription-2-6', date: '2025-02-20', description: 'YouTube Premium', amount: 11.99, category: 'Subscriptions', type: 'debit' as const },
+      { id: 'subscription-2-7', date: '2025-02-28', description: 'Gym Membership', amount: 24.06, category: 'Subscriptions', type: 'debit' as const }
     ]
   },
   {
     category: 'Groceries',
     icon: <ShoppingCart className="h-5 w-5" />,
-    statement1: 150.00,
-    statement2: 200.00,
-    difference: 50.00,
-    percentChange: 33.3,
+    statement1: 267.00,
+    statement2: 298.00,
+    difference: 31.00,
+    percentChange: 11.6,
     transactions1: [
-      { date: '2025-01-10', description: 'Frys Food', amount: 45.50, category: 'Groceries', type: 'debit' as const },
-      { date: '2025-01-25', description: 'Frys Food', amount: 38.25, category: 'Groceries', type: 'debit' as const },
-      { date: '2025-01-28', description: 'Frys Food', amount: 66.25, category: 'Groceries', type: 'debit' as const }
+      { id: 'groceries-1-1', date: '2025-01-10', description: 'Kroger', amount: 67.45, category: 'Groceries', type: 'debit' as const },
+      { id: 'groceries-1-2', date: '2025-01-25', description: 'Safeway', amount: 89.20, category: 'Groceries', type: 'debit' as const },
+      { id: 'groceries-1-3', date: '2025-01-28', description: 'Whole Foods', amount: 63.35, category: 'Groceries', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2025-02-18', description: 'Frys Food', amount: 32.44, category: 'Groceries', type: 'debit' as const },
-      { date: '2025-02-25', description: 'Frys Food', amount: 16.22, category: 'Groceries', type: 'debit' as const },
-      { date: '2025-02-27', description: 'Frys Food', amount: 50.04, category: 'Groceries', type: 'debit' as const }
+      { id: 'groceries-2-1', date: '2025-02-08', description: 'Kroger', amount: 78.90, category: 'Groceries', type: 'debit' as const },
+      { id: 'groceries-2-2', date: '2025-02-15', description: 'Safeway', amount: 92.45, category: 'Groceries', type: 'debit' as const },
+      { id: 'groceries-2-3', date: '2025-02-22', description: 'Whole Foods', amount: 58.75, category: 'Groceries', type: 'debit' as const },
+      { id: 'groceries-2-4', date: '2025-02-28', description: 'Trader Joe\'s', amount: 67.90, category: 'Groceries', type: 'debit' as const }
     ]
   },
   {
     category: 'Other',
     icon: <MoreHorizontal className="h-5 w-5" />,
-    statement1: 300.00,
-    statement2: 800.00,
-    difference: 500.00,
-    percentChange: 166.7,
+    statement1: 178.00,
+    statement2: 203.00,
+    difference: 25.00,
+    percentChange: 14.0,
     transactions1: [
-      { date: '2025-01-05', description: 'ATM Withdrawal', amount: 100.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-01-15', description: 'Transfer to Savings', amount: 200.00, category: 'Other', type: 'debit' as const }
+      { id: 'other-1-1', date: '2025-01-05', description: 'ATM Withdrawal', amount: 100.00, category: 'Other', type: 'debit' as const },
+      { id: 'other-1-2', date: '2025-01-15', description: 'Transfer to Savings', amount: 78.00, category: 'Other', type: 'debit' as const }
     ],
     transactions2: [
-      { date: '2025-02-03', description: 'ATM Withdrawal', amount: 211.99, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-03', description: 'ATM Fee', amount: 3.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-04', description: 'Robinhood Debit', amount: 10.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-05', description: 'Flamingo Hotel', amount: 524.08, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-07', description: 'JPMorgan Chase Transfer', amount: 200.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-11', description: 'Robinhood Debit', amount: 10.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-18', description: 'ATM Withdrawal', amount: 103.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-18', description: 'ATM Fee', amount: 3.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-18', description: 'Student Loan Payment', amount: 135.19, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-19', description: 'Robinhood Debit', amount: 10.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-19', description: 'Student Loan Payment', amount: 58.30, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-24', description: 'ATM Withdrawal', amount: 200.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-25', description: 'Robinhood Debit', amount: 10.00, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-28', description: 'ATM Withdrawal', amount: 203.95, category: 'Other', type: 'debit' as const },
-      { date: '2025-02-28', description: 'ATM Fee', amount: 3.00, category: 'Other', type: 'debit' as const }
+      { id: 'other-2-1', date: '2025-02-03', description: 'ATM Withdrawal', amount: 120.00, category: 'Other', type: 'debit' as const },
+      { id: 'other-2-2', date: '2025-02-05', description: 'Bank Transfer Fee', amount: 3.00, category: 'Other', type: 'debit' as const },
+      { id: 'other-2-3', date: '2025-02-10', description: 'Investment Deposit', amount: 200.00, category: 'Other', type: 'debit' as const },
+      { id: 'other-2-4', date: '2025-02-15', description: 'ATM Withdrawal', amount: 80.00, category: 'Other', type: 'debit' as const },
+      { id: 'other-2-5', date: '2025-02-20', description: 'Bank Transfer Fee', amount: 3.00, category: 'Other', type: 'debit' as const },
+      { id: 'other-2-6', date: '2025-02-25', description: 'Investment Deposit', amount: 150.00, category: 'Other', type: 'debit' as const },
+      { id: 'other-2-7', date: '2025-02-28', description: 'ATM Withdrawal', amount: 100.00, category: 'Other', type: 'debit' as const }
     ]
   }
 ];
@@ -394,17 +356,17 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 Withdrawals
               </span>
-              <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                ${apiResult?.statement1.summary.totalWithdrawals.toFixed(2) || '2,835.00'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Deposits
-              </span>
-              <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                ${apiResult?.statement1.summary.totalDeposits.toFixed(2) || '2,400.00'}
-              </span>
+                             <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                 ${apiResult?.statement1.summary.totalWithdrawals.toFixed(2) || '1,529.00'}
+               </span>
+             </div>
+             <div className="flex justify-between items-center">
+               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                 Deposits
+               </span>
+               <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                 ${apiResult?.statement1.summary.totalDeposits.toFixed(2) || '3,850.00'}
+               </span>
             </div>
           </div>
         </div>
@@ -423,17 +385,17 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 Withdrawals
               </span>
-              <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                ${apiResult?.statement2.summary.totalWithdrawals.toFixed(2) || '3,796.79'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Deposits
-              </span>
-              <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                ${apiResult?.statement2.summary.totalDeposits.toFixed(2) || '5,713.21'}
-              </span>
+                             <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                 ${apiResult?.statement2.summary.totalWithdrawals.toFixed(2) || '1,899.00'}
+               </span>
+             </div>
+             <div className="flex justify-between items-center">
+               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                 Deposits
+               </span>
+               <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                 ${apiResult?.statement2.summary.totalDeposits.toFixed(2) || '4,120.00'}
+               </span>
             </div>
           </div>
         </div>

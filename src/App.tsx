@@ -5,11 +5,15 @@ import HomePage from './pages/HomePage';
 import PricingPage from './pages/PricingPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
+import { useAuth } from './hooks/useAuth';
+import AuthModal from './components/AuthModal';
+import AuthStateDemo from './components/AuthStateDemo';
 
-function Header({ isDark, isSignedIn, setIsSignedIn }: { 
+function Header({ isDark, isSignedIn, onSignOut, onSignInClick }: { 
   isDark: boolean; 
   isSignedIn: boolean;
-  setIsSignedIn: (value: boolean) => void;
+  onSignOut: () => void;
+  onSignInClick: () => void;
 }) {
   const location = useLocation();
 
@@ -89,19 +93,36 @@ function Header({ isDark, isSignedIn, setIsSignedIn }: {
               </>
             )}
 
-            {/* Sign In/Out Button */}
-            <button
-              onClick={() => setIsSignedIn(!isSignedIn)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
-                isSignedIn
+            {/* Temporary Auth Demo Link */}
+            <Link
+              to="/auth-demo"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                isActive('/auth-demo')
                   ? isDark
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-red-600 hover:bg-red-700 text-white'
-                  : isDark
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-purple-600 text-white'
+                  : isDark 
+                    ? 'text-gray-300 hover:text-white hover:bg-gray-800' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
+              <BarChart3 className="h-4 w-4" />
+              Auth Demo
+            </Link>
+
+                         {/* Sign In/Out Button */}
+             <button
+               onClick={isSignedIn ? onSignOut : onSignInClick}
+               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+                 isSignedIn
+                   ? isDark
+                     ? 'bg-red-600 hover:bg-red-700 text-white'
+                     : 'bg-red-600 hover:bg-red-700 text-white'
+                   : isDark
+                     ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                     : 'bg-blue-600 hover:bg-blue-700 text-white'
+               }`}
+             >
               {isSignedIn ? (
                 <>
                   <LogOut className="h-4 w-4" />
@@ -132,7 +153,28 @@ function Header({ isDark, isSignedIn, setIsSignedIn }: {
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { isSignedIn, signOut, signIn, signUp, loading } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const handleSignIn = async (email: string, password: string) => {
+    try {
+      await signIn(email, password);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleSignUp = async (email: string, password: string, fullName: string) => {
+    try {
+      await signUp(email, password, fullName);
+    } catch (error) {
+      throw error;
+    }
+  };
 
   return (
     <Router>
@@ -141,18 +183,28 @@ function App() {
           ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
           : 'bg-gradient-to-br from-blue-50 via-white to-green-50'
       }`}>
-        <Header 
-          isDark={isDarkMode} 
-          isSignedIn={isSignedIn}
-          setIsSignedIn={setIsSignedIn}
-        />
+                 <Header 
+           isDark={isDarkMode} 
+           isSignedIn={isSignedIn}
+           onSignOut={handleSignOut}
+           onSignInClick={() => setShowAuthModal(true)}
+         />
         
         <Routes>
           <Route path="/" element={<HomePage isDark={isDarkMode} isSignedIn={isSignedIn} />} />
           <Route path="/pricing" element={<PricingPage isDark={isDarkMode} />} />
           <Route path="/history" element={<HistoryPage isDark={isDarkMode} />} />
           <Route path="/settings" element={<SettingsPage isDark={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />} />
+          <Route path="/auth-demo" element={<AuthStateDemo />} />
         </Routes>
+
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSignIn={handleSignIn}
+          onSignUp={handleSignUp}
+          loading={loading}
+        />
       </div>
     </Router>
   );
