@@ -278,21 +278,6 @@ export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading
             Get 40 free pages per month to start comparing your bank statements
           </div>
         )}
-
-        {/* Success Animation Overlay */}
-        {authState === 'success' && (
-          <div className="absolute inset-0 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4 animate-bounce" />
-              <h3 className="text-xl font-bold text-green-800 mb-2">
-                {isSignUp ? 'Welcome!' : 'Welcome Back!'}
-              </h3>
-              <p className="text-green-600">
-                {isSignUp ? 'Your account has been created successfully.' : 'You have been signed in successfully.'}
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
