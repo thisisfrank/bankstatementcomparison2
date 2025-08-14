@@ -93,13 +93,39 @@ async function handleCheckoutCompleted(session) {
   console.log('🛒 Checkout completed:', session.id);
   
   try {
+    // Check if session has a customer
+    if (!session.customer) {
+      console.log('⚠️ No customer associated with this checkout session');
+      console.log('📋 Session details:', {
+        id: session.id,
+        customer_email: session.customer_details?.email,
+        mode: session.mode,
+        payment_status: session.payment_status
+      });
+      return;
+    }
+
     // Get customer and subscription details
-    const customer = await stripe.customers.retrieve(session.customer);
-    const subscription = session.subscription ? 
-      await stripe.subscriptions.retrieve(session.subscription) : null;
-    
-    console.log('👤 Customer:', customer.email);
-    console.log('📅 Subscription:', subscription?.id || 'No subscription');
+    let customer;
+    try {
+      customer = await stripe.customers.retrieve(session.customer);
+      console.log('👤 Customer:', customer.email);
+    } catch (customerError) {
+      console.error('❌ Error retrieving customer:', customerError.message);
+      return;
+    }
+
+    let subscription = null;
+    if (session.subscription) {
+      try {
+        subscription = await stripe.subscriptions.retrieve(session.subscription);
+        console.log('📅 Subscription:', subscription.id);
+      } catch (subscriptionError) {
+        console.error('❌ Error retrieving subscription:', subscriptionError.message);
+      }
+    } else {
+      console.log('📅 No subscription associated with this checkout');
+    }
     
     // Update user's subscription in Supabase
     await updateUserSubscription(customer.email, subscription, session);
@@ -159,7 +185,14 @@ async function handlePaymentSucceeded(invoice) {
     const customer = await stripe.customers.retrieve(invoice.customer);
     console.log('👤 Customer:', customer.email);
     
-    await refreshUserPageAllowance(customer.email);
+    // Only refresh page allowance if this is a monthly renewal
+    // (not on upgrades or other payments)
+    if (invoice.billing_reason === 'subscription_cycle') {
+      console.log('🔄 Monthly renewal detected, refreshing page allowance');
+      await refreshUserPageAllowance(customer.email);
+    } else {
+      console.log('💳 Payment received but not monthly renewal, skipping page refresh');
+    }
   } catch (error) {
     console.error('❌ Error in handlePaymentSucceeded:', error);
   }
@@ -235,6 +268,32 @@ async function updateUserSubscription(email, subscription, session = null) {
     
     console.log('👤 User found:', user.id);
     
+    // Check if user already has a subscription to handle upgrades
+    const { data: existingSub, error: existingError } = await supabase
+      .from('user_subscriptions')
+      .select('pages_remaining, tier_id, pages_used')
+      .eq('user_id', user.id)
+      .single();
+    
+    let newPagesRemaining = tier.monthly_pages;
+    
+    if (existingError && existingError.code === 'PGRST116') {
+      console.log('🆕 First-time subscription for user');
+    } else if (existingSub) {
+      if (existingSub.tier_id !== tier.id) {
+        console.log('🔄 User is upgrading from tier', existingSub.tier_id, 'to', tier.id);
+        console.log('📊 Current pages remaining:', existingSub.pages_remaining);
+        console.log('📊 Current pages used:', existingSub.pages_used);
+        console.log('📊 New tier pages:', tier.monthly_pages);
+        
+        newPagesRemaining = existingSub.pages_remaining + tier.monthly_pages;
+        console.log('📊 Total pages after upgrade:', newPagesRemaining);
+      } else {
+        console.log('🔄 User is on same tier, keeping existing pages:', existingSub.pages_remaining);
+        newPagesRemaining = existingSub.pages_remaining;
+      }
+    }
+    
     // Update or create subscription record
     const subscriptionData = {
       user_id: user.id,
@@ -242,8 +301,8 @@ async function updateUserSubscription(email, subscription, session = null) {
       stripe_sub_id: subscription?.id || null,
       stripe_customer_id: subscription?.customer || session?.customer,
       status: subscription?.status || 'active',
-      pages_remaining: tier.monthly_pages,
-      pages_used: 0,
+      pages_remaining: newPagesRemaining,
+      pages_used: existingSub ? existingSub.pages_used : 0,  // Preserve existing usage
       current_period_start: subscription?.current_period_start ? 
         new Date(subscription.current_period_start * 1000) : new Date(),
       current_period_end: subscription?.current_period_end ? 
@@ -260,6 +319,7 @@ async function updateUserSubscription(email, subscription, session = null) {
       console.error('❌ Error updating subscription:', subError);
     } else {
       console.log('✅ Subscription updated successfully for user:', user.id);
+      console.log('📊 Final pages_remaining:', newPagesRemaining);
     }
   } catch (error) {
     console.error('❌ Error in updateUserSubscription:', error);
@@ -300,10 +360,10 @@ async function cancelUserSubscription(email) {
   }
 }
 
-// Refresh user's page allowance
+// Refresh user's page allowance (monthly renewal)
 async function refreshUserPageAllowance(email) {
   try {
-    console.log('🔄 Refreshing page allowance for:', email);
+    console.log('🔄 Refreshing page allowance for monthly renewal:', email);
     
     const { data: user, error: userError } = await supabase
       .from('profiles')
@@ -318,7 +378,7 @@ async function refreshUserPageAllowance(email) {
     
     const { data: subscription, error: subError } = await supabase
       .from('user_subscriptions')
-      .select('tier_id, pages_used')
+      .select('tier_id, pages_used, pages_remaining')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .single();
@@ -339,11 +399,20 @@ async function refreshUserPageAllowance(email) {
       return;
     }
     
+    // Calculate new pages: tier monthly pages + any unused pages from previous month
+    const unusedPages = Math.max(0, subscription.pages_remaining - subscription.pages_used);
+    const newPagesRemaining = tier.monthly_pages + unusedPages;
+    
+    console.log('📊 Monthly renewal calculation:');
+    console.log('  - Tier monthly pages:', tier.monthly_pages);
+    console.log('  - Unused pages from previous month:', unusedPages);
+    console.log('  - Total new pages:', newPagesRemaining);
+    
     const { error: updateError } = await supabase
       .from('user_subscriptions')
       .update({
-        pages_remaining: tier.monthly_pages,
-        pages_used: 0
+        pages_remaining: newPagesRemaining,
+        pages_used: 0  // Reset usage counter for new month
       })
       .eq('user_id', user.id);
     
@@ -351,6 +420,7 @@ async function refreshUserPageAllowance(email) {
       console.error('❌ Error refreshing page allowance:', updateError);
     } else {
       console.log('✅ Page allowance refreshed for user:', user.id);
+      console.log('📊 Final pages_remaining:', newPagesRemaining);
     }
   } catch (error) {
     console.error('❌ Error in refreshUserPageAllowance:', error);
@@ -396,17 +466,17 @@ async function handleFailedPayment(email) {
 
 // Helper function to get tier from Stripe price ID
 function getTierFromPriceId(priceId) {
-  // This should match your Stripe price IDs
+  // Your actual Stripe price IDs mapped to your database tiers
   const tierMap = {
-    'price_starter_monthly': { id: 1, name: 'Starter', monthly_pages: 10 },
-    'price_pro_monthly': { id: 2, name: 'Pro', monthly_pages: 50 },
-    'price_business_monthly': { id: 3, name: 'Business', monthly_pages: 200 }
+    'price_1Rrpe8RD0ogceRR4LdVUllat': { id: 2, name: 'starter', monthly_pages: 150 },
+    'price_1Rrrw7RD0ogceRR4BEdntV12': { id: 3, name: 'pro', monthly_pages: 400 },
+    'price_1RrrwQRD0ogceRR41ZscbkhJ': { id: 4, name: 'business', monthly_pages: 1000 }
   };
   
   const tier = tierMap[priceId];
   if (!tier) {
     console.warn(`⚠️ Unknown price ID: ${priceId}, defaulting to Starter`);
-    return tierMap['price_starter_monthly'];
+    return { id: 2, name: 'starter', monthly_pages: 150 };
   }
   
   return tier;
