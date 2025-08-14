@@ -1,17 +1,16 @@
 import React, { useState } from 'react'
-import { X, CheckCircle, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react'
+import { X, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react'
 
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (email: string, password: string, fullName: string) => Promise<void>
-  loading: boolean
 }
 
-type AuthState = 'idle' | 'loading' | 'success' | 'error' | 'validation-error'
+type AuthState = 'idle' | 'success' | 'error'
 
-export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -52,11 +51,10 @@ export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading
     setValidationErrors({})
     
     if (!validateForm()) {
-      setAuthState('validation-error')
       return
     }
 
-    setAuthState('loading')
+
 
     try {
       if (isSignUp) {
@@ -64,6 +62,7 @@ export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading
       } else {
         await onSignIn(email, password)
       }
+      // Only show success if no error was thrown
       setAuthState('success')
       setTimeout(() => {
         onClose()
@@ -95,8 +94,7 @@ export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading
         return 'border-green-500 bg-green-50'
       case 'error':
         return 'border-red-500 bg-red-50'
-      case 'validation-error':
-        return 'border-yellow-500 bg-yellow-50'
+
       default:
         return 'border-gray-300 bg-white'
     }
@@ -108,8 +106,7 @@ export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading
         return <CheckCircle className="h-6 w-6 text-green-600" />
       case 'error':
         return <AlertCircle className="h-6 w-6 text-red-600" />
-      case 'validation-error':
-        return <AlertCircle className="h-6 w-6 text-yellow-600" />
+
       default:
         return null
     }
@@ -121,8 +118,7 @@ export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading
         return isSignUp ? 'Account created successfully!' : 'Signed in successfully!'
       case 'error':
         return error
-      case 'validation-error':
-        return 'Please fix the validation errors below'
+
       default:
         return ''
     }
@@ -152,9 +148,7 @@ export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading
           <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${
             authState === 'success' 
               ? 'bg-green-100 text-green-800' 
-              : authState === 'error'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-yellow-100 text-yellow-800'
+              : 'bg-red-100 text-red-800'
           }`}>
             {getStateMessage()}
           </div>
@@ -243,17 +237,9 @@ export default function AuthModal({ isOpen, onClose, onSignIn, onSignUp, loading
 
           <button
             type="submit"
-            disabled={authState === 'loading'}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
           >
-            {authState === 'loading' ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                {isSignUp ? 'Creating Account...' : 'Signing In...'}
-              </>
-            ) : (
-              isSignUp ? 'Create Account' : 'Sign In'
-            )}
+            {isSignUp ? 'Create Account' : 'Sign In'}
           </button>
         </form>
 

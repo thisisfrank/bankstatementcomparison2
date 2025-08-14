@@ -9,7 +9,7 @@ import { Transaction } from '../../types';
 import HeroSection from './HeroSection';
 import UploadSection from './UploadSection';
 import ResultsSection from './ResultsSection';
-import DemoSection from './DemoSection';
+
 
 export interface FileUpload {
   file: File;
@@ -320,8 +320,6 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
 
           {/* File Manager - Only show for signed in users */}
           {isSignedIn && <FileManager isDark={isDark} />}
-
-          <DemoSection isDark={isDark} />
         </>
       ) : (
         <div className="space-y-8">

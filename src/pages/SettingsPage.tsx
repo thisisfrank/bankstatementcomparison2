@@ -1,10 +1,41 @@
-import React, { useState } from 'react';
-import { Moon, Sun, Trash2, User, Mail, Key, Globe, Palette, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Moon, Sun, Trash2, User, Mail, Key, Globe, Palette, CreditCard, RefreshCw } from 'lucide-react';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useSubscription } from '../hooks/useSubscription';
 
-export default function SettingsPage({ isDark, onToggleDarkMode }: { 
+export default function SettingsPage({ 
+  isDark, 
+  onToggleDarkMode, 
+  user 
+}: { 
   isDark: boolean; 
   onToggleDarkMode: () => void; 
+  user: SupabaseUser | null;
 }) {
+  console.log('⚙️ SettingsPage: Component rendered with props:', { 
+    isDark, 
+    hasUser: !!user, 
+    userId: user?.id 
+  });
+  
+  const { subscriptionData, isLoading, error, refreshSubscription } = useSubscription();
+  
+  console.log('⚙️ SettingsPage: useSubscription hook returned:', {
+    hasSubscriptionData: !!subscriptionData,
+    isLoading,
+    error,
+    subscriptionData
+  });
+
+  // Debug effect to track changes
+  useEffect(() => {
+    console.log('⚙️ SettingsPage: useEffect triggered - subscription data changed:', {
+      hasSubscriptionData: !!subscriptionData,
+      isLoading,
+      error,
+      subscriptionData
+    });
+  }, [subscriptionData, isLoading, error]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -36,50 +67,101 @@ export default function SettingsPage({ isDark, onToggleDarkMode }: {
             </h2>
           </div>
 
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Current Tier
-                </label>
-                <div className={`px-4 py-3 rounded-lg border ${
-                  isDark 
-                    ? 'bg-gray-700 border-gray-600 text-gray-200' 
-                    : 'bg-gray-50 border-gray-300 text-gray-900'
-                }`}>
-                  <span className="font-semibold">Pro Plan</span>
-                </div>
-              </div>
-
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Credits Remaining
-                </label>
-                <div className={`px-4 py-3 rounded-lg border ${
-                  isDark 
-                    ? 'bg-gray-700 border-gray-600 text-gray-200' 
-                    : 'bg-gray-50 border-gray-300 text-gray-900'
-                }`}>
-                  <span className="font-semibold">247 credits</span>
-                </div>
-              </div>
-
-              <div className="flex items-end">
-                <button className={`w-full px-4 py-3 rounded-lg transition-colors font-medium ${
-                  isDark 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}>
-                  Manage Subscription
-                </button>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className={`inline-block animate-spin rounded-full h-8 w-8 border-b-2 ${
+                isDark ? 'border-blue-400' : 'border-blue-600'
+              }`}></div>
+              <p className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Loading subscription data... (Debug: isLoading={isLoading.toString()})
+              </p>
+              <div className="mt-2 text-xs opacity-75">
+                <p>User: {user?.id || 'None'}</p>
+                <p>Subscription Data: {subscriptionData ? 'Yes' : 'No'}</p>
+                <p>Error: {error || 'None'}</p>
               </div>
             </div>
+          ) : error ? (
+            <div className={`p-4 rounded-lg border ${
+              isDark 
+                ? 'bg-red-900/20 border-red-700/50' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <p className={`text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                {error}
+              </p>
+              <button
+                onClick={refreshSubscription}
+                className={`mt-2 text-sm underline ${isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'}`}
+              >
+                Try again
+              </button>
+            </div>
+          ) : subscriptionData ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Current Tier
+                  </label>
+                  <div className={`px-4 py-3 rounded-lg border ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-gray-200' 
+                      : 'bg-gray-50 border-gray-300 text-gray-900'
+                  }`}>
+                    <span className="font-semibold">
+                      {subscriptionData.tierName}
+                    </span>
+                    {subscriptionData.monthlyPages > 0 && (
+                      <div className="text-xs mt-1 opacity-75">
+                    
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-          </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Pages Remaining
+                  </label>
+                  <div className={`px-4 py-3 rounded-lg border ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-gray-200' 
+                      : 'bg-gray-50 border-gray-300 text-gray-900'
+                  }`}>
+                    <span className="font-semibold">
+                      {subscriptionData.pagesRemaining} pages
+                    </span>
+                    {subscriptionData.pagesUsed > 0 && (
+                      <div className="text-xs mt-1 opacity-75">
+                        Used: {subscriptionData.pagesUsed} pages
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-end">
+                  <button className={`w-full px-4 py-3 rounded-lg transition-colors font-medium ${
+                    isDark 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}>
+                    Manage Subscription
+                  </button>
+                </div>
+              </div>
+
+
+            </div>
+          ) : (
+            <div className={`text-center py-8 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p>No subscription data available</p>
+            </div>
+          )}
         </div>
 
         {/* Appearance */}
@@ -156,14 +238,20 @@ export default function SettingsPage({ isDark, onToggleDarkMode }: {
                   }`} />
                   <input
                     type="email"
-                    placeholder="your@email.com"
+                    value={user?.email || ''}
+                    readOnly
                     className={`w-full pl-10 pr-4 py-2 rounded-lg border transition-colors ${
                       isDark 
-                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 focus:border-blue-500' 
-                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                        : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
+                    } focus:outline-none cursor-not-allowed opacity-75`}
                   />
                 </div>
+                <p className={`text-xs mt-1 ${
+                  isDark ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  Email address cannot be changed
+                </p>
               </div>
 
               <div>
