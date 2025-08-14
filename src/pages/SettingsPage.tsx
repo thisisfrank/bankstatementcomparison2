@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Trash2, User, Mail, Key, Globe, Palette, CreditCard, RefreshCw } from 'lucide-react';
+import { Moon, Sun, Trash2, User, Mail, Key, Globe, Palette, CreditCard, RefreshCw, Check, X } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useSubscription } from '../hooks/useSubscription';
+import { useSearchParams } from 'react-router-dom';
 
 export default function SettingsPage({ 
   isDark, 
@@ -19,6 +20,8 @@ export default function SettingsPage({
   });
   
   const { subscriptionData, isLoading, error, refreshSubscription } = useSubscription();
+  const [searchParams] = useSearchParams();
+  const [showSuccess, setShowSuccess] = useState(false);
   
   console.log('⚙️ SettingsPage: useSubscription hook returned:', {
     hasSubscriptionData: !!subscriptionData,
@@ -26,6 +29,18 @@ export default function SettingsPage({
     error,
     subscriptionData
   });
+
+  // Check for success parameter from Stripe checkout
+  useEffect(() => {
+    const success = searchParams.get('success');
+    if (success === 'true') {
+      setShowSuccess(true);
+      // Refresh subscription data
+      refreshSubscription();
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setShowSuccess(false), 5000);
+    }
+  }, [searchParams, refreshSubscription]);
 
   // Debug effect to track changes
   useEffect(() => {
@@ -39,6 +54,22 @@ export default function SettingsPage({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Success Message */}
+      {showSuccess && (
+        <div className="mb-6">
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2 shadow-lg">
+            <Check className="h-5 w-5" />
+            <span>Payment successful! Your subscription is now active.</span>
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="ml-auto text-green-500 hover:text-green-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <h1 className={`text-4xl font-bold mb-4 ${
