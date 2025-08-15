@@ -29,46 +29,71 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
     const loadHistory = async () => {
       try {
         setLoading(true);
+        console.log('🔄 HistoryPage: Starting to load history for user:', user?.id);
         
         if (user?.id) {
           // Load complete comparison history from Supabase usage_logs
+          console.log('🔍 HistoryPage: Querying usage_logs table...');
+          
+          // First, try a simple query to see if the table exists and has any data
+          const { data: testData, error: testError } = await supabase
+            .from('usage_logs')
+            .select('count')
+            .eq('user_id', user.id);
+          
+          console.log('🧪 HistoryPage: Test query result:', { testData, testError });
+          
+          // Now try the full query
           const { data: usageLogs, error } = await supabase
             .from('usage_logs')
             .select('*')
             .eq('user_id', user.id)
-            .not('statement1_name', 'is', null) // Only get entries with comparison data
             .order('created_at', { ascending: false });
           
+          console.log('📊 HistoryPage: Supabase query result:', { usageLogs, error });
+          
           if (error) {
-            console.error('Failed to load usage logs from Supabase:', error);
+            console.error('❌ HistoryPage: Failed to load usage logs from Supabase:', error);
             setHistory([]);
           } else {
-            console.log('📊 Loaded comparison history from Supabase:', usageLogs);
+            console.log('✅ HistoryPage: Successfully loaded usage logs:', usageLogs);
+            
+            if (!usageLogs || usageLogs.length === 0) {
+              console.log('ℹ️ HistoryPage: No usage logs found for user');
+              setHistory([]);
+              return;
+            }
             
             // Transform Supabase data to ComparisonHistory format
-            const transformedHistory: ComparisonHistory[] = (usageLogs || []).map(log => ({
-              id: log.id,
-              date: log.created_at,
-              statement1Name: log.statement1_name || 'Unknown',
-              statement2Name: log.statement2_name || 'Unknown',
-              result: log.comparison_summary, // Store comparison summary as result
-              userId: log.user_id,
-              pagesConsumed: log.pages_consumed,
-              file1Pages: log.file1_pages,
-              file2Pages: log.file2_pages
-            }));
+            const transformedHistory: ComparisonHistory[] = usageLogs.map(log => {
+              console.log('🔄 HistoryPage: Transforming log:', log);
+              return {
+                id: log.id,
+                date: log.created_at,
+                statement1Name: log.statement1_name || 'Unknown',
+                statement2Name: log.statement2_name || 'Unknown',
+                result: log.comparison_summary, // Store comparison summary as result
+                userId: log.user_id,
+                pagesConsumed: log.pages_consumed,
+                file1Pages: log.file1_pages,
+                file2Pages: log.file2_pages
+              };
+            });
             
+            console.log('✅ HistoryPage: Transformed history:', transformedHistory);
             setHistory(transformedHistory);
           }
         } else {
           // Not signed in, show empty history
+          console.log('ℹ️ HistoryPage: No user ID, showing empty history');
           setHistory([]);
         }
       } catch (error) {
-        console.error('Failed to load history:', error);
+        console.error('❌ HistoryPage: Unexpected error loading history:', error);
         setHistory([]);
       } finally {
         setLoading(false);
+        console.log('🏁 HistoryPage: Finished loading history');
       }
     };
 
@@ -100,19 +125,35 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
     // Extract full comparison data from the enhanced comparison_summary
     let fullComparisonData = null;
     
+    console.log('🔍 HistoryPage: Processing comparison item for view:', item);
+    
     if (item.result && typeof item.result === 'object') {
       // If we have the enhanced comparison_summary, extract the full data
       if (item.result.fullComparison) {
+        console.log('📊 HistoryPage: Using enhanced comparison_summary format');
         // This is the new enhanced format with full data
         fullComparisonData = {
           statement1: item.result.statement1.fullData,
           statement2: item.result.statement2.fullData,
           comparison: item.result.comparison.fullComparison
         };
+      } else if (item.result.comparison && Array.isArray(item.result.comparison)) {
+        console.log('📊 HistoryPage: Using direct comparison array format');
+        // Direct comparison array format
+        fullComparisonData = {
+          statement1: item.result.statement1 || {},
+          statement2: item.result.statement2 || {},
+          comparison: item.result.comparison
+        };
       } else {
+        console.log('📊 HistoryPage: Using fallback result format');
         // Fallback for old format or direct result data
         fullComparisonData = item.result;
       }
+      
+      console.log('✅ HistoryPage: Transformed comparison data:', fullComparisonData);
+    } else {
+      console.warn('⚠️ HistoryPage: No result data found for comparison item');
     }
     
     // Navigate to home page with comparison results
@@ -244,14 +285,28 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
           <h3 className={`text-xl font-semibold mb-2 ${
             isDark ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            No comparisons found
+            {searchTerm ? 'No comparisons found' : 'No comparison history yet'}
           </h3>
           <p className={isDark ? 'text-gray-500' : 'text-gray-500'}>
             {searchTerm 
               ? 'Try adjusting your search terms'
-              : 'Start by creating your first comparison'
+              : 'Start by creating your first comparison. Your comparison history will appear here once you run some comparisons.'
             }
           </p>
+          {!searchTerm && (
+            <div className="mt-4">
+              <button
+                onClick={() => navigate('/')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isDark 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                Go to Comparison Tool
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

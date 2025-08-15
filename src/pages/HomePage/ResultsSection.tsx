@@ -242,17 +242,51 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
   const [editableData, setEditableData] = useState<CategoryComparison[]>(mockComparison);
   const [editMode, setEditMode] = useState(false);
 
+  // Debug logging for apiResult structure
+  console.log('🔍 ResultsSection: apiResult received:', {
+    hasApiResult: !!apiResult,
+    apiResultType: typeof apiResult,
+    keys: apiResult ? Object.keys(apiResult) : null,
+    statement1Keys: apiResult?.statement1 ? Object.keys(apiResult.statement1) : null,
+    statement2Keys: apiResult?.statement2 ? Object.keys(apiResult.statement2) : null,
+    comparisonType: typeof apiResult?.comparison,
+    isComparisonArray: Array.isArray(apiResult?.comparison)
+  });
+
   // Use API data if available, otherwise fall back to editable mock data for preview
-  const displayData = apiResult?.comparison.map((item: any) => ({
-    category: item.category,
-    icon: getCategoryIcon(item.category),
-    statement1: item.statement1Total,
-    statement2: item.statement2Total,
-    difference: item.difference,
-    percentChange: item.percentChange,
-    transactions1: item.transactions1,
-    transactions2: item.transactions2
-  })) || editableData;
+  const displayData = (() => {
+    // Check if apiResult exists and has the expected structure
+    if (apiResult?.comparison && Array.isArray(apiResult.comparison)) {
+      try {
+        return apiResult.comparison.map((item: any) => ({
+          category: item.category,
+          icon: getCategoryIcon(item.category),
+          statement1: item.statement1Total,
+          statement2: item.statement2Total,
+          difference: item.difference,
+          percentChange: item.percentChange,
+          transactions1: item.transactions1 || [],
+          transactions2: item.transactions2 || []
+        }));
+      } catch (error) {
+        console.error('Error processing comparison data:', error);
+        return editableData;
+      }
+    }
+    
+    // If apiResult exists but doesn't have the expected structure, log it for debugging
+    if (apiResult) {
+      console.log('⚠️ apiResult structure:', {
+        hasComparison: !!apiResult.comparison,
+        comparisonType: typeof apiResult.comparison,
+        isArray: Array.isArray(apiResult.comparison),
+        keys: Object.keys(apiResult),
+        comparisonKeys: apiResult.comparison ? Object.keys(apiResult.comparison) : null
+      });
+    }
+    
+    return editableData;
+  })();
 
   // Convert transactions to have IDs for editing
   const convertTransactionsWithIds = (transactions: any[]): Transaction[] => {
@@ -356,17 +390,17 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 Withdrawals
               </span>
-                             <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                 ${apiResult?.statement1.summary.totalWithdrawals.toFixed(2) || '1,529.00'}
-               </span>
-             </div>
-             <div className="flex justify-between items-center">
-               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                 Deposits
-               </span>
-               <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                 ${apiResult?.statement1.summary.totalDeposits.toFixed(2) || '3,850.00'}
-               </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                ${apiResult?.statement1?.summary?.totalWithdrawals?.toFixed(2) || '1,529.00'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Deposits
+              </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                ${apiResult?.statement1?.summary?.totalDeposits?.toFixed(2) || '3,850.00'}
+              </span>
             </div>
           </div>
         </div>
@@ -385,17 +419,17 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 Withdrawals
               </span>
-                             <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                 ${apiResult?.statement2.summary.totalWithdrawals.toFixed(2) || '1,899.00'}
-               </span>
-             </div>
-             <div className="flex justify-between items-center">
-               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                 Deposits
-               </span>
-               <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                 ${apiResult?.statement2.summary.totalDeposits.toFixed(2) || '4,120.00'}
-               </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                ${apiResult?.statement2?.summary?.totalWithdrawals?.toFixed(2) || '1,899.00'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Deposits
+              </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                ${apiResult?.statement2?.summary?.totalDeposits?.toFixed(2) || '4,120.00'}
+              </span>
             </div>
           </div>
         </div>
