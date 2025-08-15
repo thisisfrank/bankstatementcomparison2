@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Trash2, User, Mail, Key, Globe, Palette, CreditCard, RefreshCw, Check, X } from 'lucide-react';
+import { Moon, Sun, Trash2, User, Mail, Key, Globe, Palette, CreditCard, RefreshCw, Check, X, MessageCircle } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useSubscription } from '../hooks/useSubscription';
 import { useSearchParams } from 'react-router-dom';
+import FeedbackForm from '../components/FeedbackForm';
 
 export default function SettingsPage({ 
   isDark, 
@@ -169,7 +170,7 @@ export default function SettingsPage({
                     </span>
                     {subscriptionData.pagesUsed > 0 && (
                       <div className="text-xs mt-1 opacity-75">
-                        Used: {subscriptionData.pagesUsed} pages
+                       
                       </div>
                     )}
                   </div>
@@ -327,6 +328,34 @@ export default function SettingsPage({
           </div>
         </div>
 
+
+        {/* Feedback */}
+        <div className={`rounded-xl p-6 ${
+          isDark ? 'bg-gray-800' : 'bg-white'
+        } shadow-lg`}>
+          <div className="flex items-center gap-3 mb-6">
+            <MessageCircle className={`h-6 w-6 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+            <h2 className={`text-xl font-semibold ${
+              isDark ? 'text-gray-200' : 'text-gray-800'
+            }`}>
+              Feedback & Support
+            </h2>
+          </div>
+
+          <div className={`p-4 rounded-lg border ${
+            isDark 
+              ? 'bg-blue-900/20 border-blue-700/50' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
+            <h3 className={`font-medium mb-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+              Help Us Improve
+            </h3>
+            <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Share your thoughts, report issues, or suggest improvements. Your feedback helps us make this tool better.
+            </p>
+            <FeedbackForm isDark={isDark} context="general" />
+          </div>
+        </div>
 
         {/* Delete Account */}
         <div className={`rounded-xl p-6 ${

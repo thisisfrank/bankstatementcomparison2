@@ -4,6 +4,7 @@ import { FileText, Download, BarChart3, Home, Car, Utensils, ShoppingBag, Gamepa
 import { CategoryComparison } from './index';
 import TransactionManager, { Transaction } from '../../components/TransactionManager';
 import { ExportService } from '../../services/exportService';
+import FeedbackForm from '../../components/FeedbackForm';
 
 // Helper function to get category icons
 const getCategoryIcon = (category: string): React.ReactNode => {
@@ -696,6 +697,11 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
           <BarChart3 className="h-5 w-5" />
           Generate New Comparison
         </button>
+        
+        {/* Feedback Button */}
+        <div className="flex justify-center pt-2">
+          <FeedbackForm isDark={isDark} context="comparison" />
+        </div>
       </div>
     </>
   );
