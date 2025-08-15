@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FileText, Download, BarChart3, Home, Car, Utensils, ShoppingBag, Gamepad2, Heart, Briefcase, MoreHorizontal, CreditCard, ShoppingCart } from 'lucide-react';
 import { CategoryComparison } from './index';
 import TransactionManager, { Transaction } from '../../components/TransactionManager';
+import { ExportService } from '../../services/exportService';
 
 // Helper function to get category icons
 const getCategoryIcon = (category: string): React.ReactNode => {
@@ -328,6 +329,36 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
     }));
   };
 
+  const handleExportPDF = () => {
+    try {
+      const exportData = ExportService.prepareExportData(
+        displayData,
+        statementLabels.statement1,
+        statementLabels.statement2,
+        apiResult
+      );
+      ExportService.exportToPDF(exportData);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const exportData = ExportService.prepareExportData(
+        displayData,
+        statementLabels.statement1,
+        statementLabels.statement2,
+        apiResult
+      );
+      ExportService.exportToCSV(exportData);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Failed to export CSV. Please try again.');
+    }
+  };
+
   return (
     <>
       {/* Results Header */}
@@ -623,6 +654,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
       <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
         <div className="flex gap-4 w-full">
           <button 
+            onClick={handleExportPDF}
             disabled={!isSignedIn}
             className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
               isSignedIn
@@ -638,6 +670,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
           </button>
           
           <button 
+            onClick={handleExportCSV}
             disabled={!isSignedIn}
             className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
               isSignedIn
@@ -645,7 +678,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
                   ? 'bg-green-600 hover:bg-green-700 text-white' 
                   : 'bg-green-600 hover:bg-green-700 text-white'
                 : isDark
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}>
             <Download className="h-5 w-5" />

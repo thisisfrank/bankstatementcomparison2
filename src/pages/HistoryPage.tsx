@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Clock, Download, Trash2, Eye, Calendar, Filter, Search, BarChart3, FileText } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { ExportService } from '../services/exportService';
 
 interface ComparisonHistory {
   id: string;
@@ -192,6 +193,100 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
       console.error('Failed to delete comparison:', error);
     }
   };
+
+  const handleExportPDF = (item: ComparisonHistory) => {
+    try {
+      if (!item.result) {
+        alert('No comparison data available for export.');
+        return;
+      }
+
+      // Extract comparison data from the stored result
+      let comparisonData = null;
+      if (item.result.fullComparison) {
+        comparisonData = item.result.fullComparison;
+      } else if (item.result.comparison && Array.isArray(item.result.comparison)) {
+        comparisonData = item.result.comparison;
+      } else {
+        comparisonData = item.result;
+      }
+
+      if (!comparisonData) {
+        alert('Comparison data format not supported for export.');
+        return;
+      }
+
+      // Transform the data to match the export format
+      const categories = comparisonData.map((cat: any) => ({
+        category: cat.category,
+        statement1: cat.statement1Total || 0,
+        statement2: cat.statement2Total || 0,
+        difference: cat.difference || 0,
+        percentChange: cat.percentChange || 0,
+        transactions1: cat.transactions1 || [],
+        transactions2: cat.transactions2 || []
+      }));
+
+      const exportData = ExportService.prepareExportData(
+        categories,
+        item.statement1Name,
+        item.statement2Name,
+        item.result
+      );
+
+      ExportService.exportToPDF(exportData);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    }
+  };
+
+  const handleExportCSV = (item: ComparisonHistory) => {
+    try {
+      if (!item.result) {
+        alert('No comparison data available for export.');
+        return;
+      }
+
+      // Extract comparison data from the stored result
+      let comparisonData = null;
+      if (item.result.fullComparison) {
+        comparisonData = item.result.fullComparison;
+      } else if (item.result.comparison && Array.isArray(item.result.comparison)) {
+        comparisonData = item.result.comparison;
+      } else {
+        comparisonData = item.result;
+      }
+
+      if (!comparisonData) {
+        alert('Comparison data format not supported for export.');
+        return;
+      }
+
+      // Transform the data to match the export format
+      const categories = comparisonData.map((cat: any) => ({
+        category: cat.category,
+        statement1: cat.statement1Total || 0,
+        statement2: cat.statement2Total || 0,
+        difference: cat.difference || 0,
+        percentChange: cat.percentChange || 0,
+        transactions1: cat.transactions1 || [],
+        transactions2: cat.transactions2 || []
+      }));
+
+      const exportData = ExportService.prepareExportData(
+        categories,
+        item.statement1Name,
+        item.statement2Name,
+        item.result
+      );
+
+      ExportService.exportToCSV(exportData);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Failed to export CSV. Please try again.');
+    }
+  };
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
@@ -369,6 +464,30 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
                     title="View Details"
                   >
                     <Eye className="h-5 w-5" />
+                  </button>
+                  
+                  <button
+                    onClick={() => handleExportPDF(item)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isDark 
+                        ? 'hover:bg-orange-900/20 text-orange-400 hover:text-orange-300' 
+                        : 'hover:bg-orange-50 text-orange-500 hover:text-orange-700'
+                    }`}
+                    title="Export PDF"
+                  >
+                    <Download className="h-5 w-5" />
+                  </button>
+                  
+                  <button
+                    onClick={() => handleExportCSV(item)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isDark 
+                        ? 'hover:bg-green-900/20 text-green-400 hover:text-green-300' 
+                        : 'hover:bg-green-50 text-green-500 hover:text-green-700'
+                    }`}
+                    title="Export CSV"
+                  >
+                    <Download className="h-5 w-5" />
                   </button>
                   
                   <button
