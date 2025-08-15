@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useApiComparison } from '../../hooks/useApiComparison';
+import { useAuth } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import FileManager from '../../components/FileManager';
@@ -30,6 +31,7 @@ export interface CategoryComparison {
 
 export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSignedIn: boolean }) {
   const location = useLocation();
+  const { user } = useAuth(); // Get the current user object
   const [uploadedFiles, setUploadedFiles] = useState<{
     statement1?: FileUpload;
     statement2?: FileUpload;
@@ -84,30 +86,8 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
   const handleResetComparison = () => {
     console.log('🔄 Resetting comparison state...');
     
-    // Save current comparison to history if we have results and user is signed in
-    if (apiResult && isSignedIn) {
-      try {
-        const historyItem = {
-          id: Date.now().toString(),
-          date: new Date().toISOString(),
-          statement1Name: statementLabels.statement1,
-          statement2Name: statementLabels.statement2,
-          result: apiResult
-        };
-        
-        // Get existing history from localStorage
-        const existingHistory = JSON.parse(localStorage.getItem('comparisonHistory') || '[]');
-        existingHistory.unshift(historyItem); // Add to beginning
-        
-        // Keep only last 50 items
-        const trimmedHistory = existingHistory.slice(0, 50);
-        
-        localStorage.setItem('comparisonHistory', JSON.stringify(trimmedHistory));
-        console.log('💾 Saved comparison to history');
-      } catch (error) {
-        console.error('Failed to save comparison to history:', error);
-      }
-    }
+    // Note: Comparison history is now automatically saved after successful comparison
+    // No need to manually save here since it's handled in useApiComparison hook
     
     // Clear API service uploaded files
     apiService.clearAllUploadedFiles();
@@ -226,7 +206,8 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
     try {
       await compareStatements(
         uploadedFiles.statement1!.file, 
-        uploadedFiles.statement2!.file
+        uploadedFiles.statement2!.file,
+        user?.id // Pass userId if signed in
       );
     } catch (error) {
       // If API fails, offer sample data as fallback

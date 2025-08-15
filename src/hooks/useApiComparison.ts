@@ -5,6 +5,66 @@ import {
 import { ComparisonResult } from '../types';
 import { StatementProcessor } from '../services/statementProcessor';
 import { ComparisonEngine } from '../services/comparisonEngine';
+import { supabase } from '../lib/supabase';
+
+// Function to update user's subscription pages after consuming pages
+async function updateUserSubscriptionPages(userId: string, pagesConsumed: number): Promise<void> {
+  try {
+    console.log('💳 Updating user subscription pages for user:', userId, 'consumed:', pagesConsumed);
+    
+    // First, get the current user subscription
+    const { data: currentSubscription, error: fetchError } = await supabase
+      .from('user_subscriptions')
+      .select('id, pages_remaining, pages_used')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .maybeSingle();
+    
+    if (fetchError) {
+      throw new Error(`Failed to fetch user subscription: ${fetchError.message}`);
+    }
+    
+    if (!currentSubscription) {
+      console.warn('No active subscription found for user:', userId);
+      return; // User might be on free tier or no subscription
+    }
+    
+    // Calculate new values
+    const newPagesRemaining = Math.max(0, currentSubscription.pages_remaining - pagesConsumed);
+    const newPagesUsed = currentSubscription.pages_used + pagesConsumed;
+    
+    console.log('📊 Page calculation:', {
+      current: {
+        remaining: currentSubscription.pages_remaining,
+        used: currentSubscription.pages_used
+      },
+      consumed: pagesConsumed,
+      new: {
+        remaining: newPagesRemaining,
+        used: newPagesUsed
+      }
+    });
+    
+    // Update the subscription
+    const { error: updateError } = await supabase
+      .from('user_subscriptions')
+      .update({
+        pages_remaining: newPagesRemaining,
+        pages_used: newPagesUsed
+      })
+      .eq('id', currentSubscription.id);
+    
+    if (updateError) {
+      throw new Error(`Failed to update subscription: ${updateError.message}`);
+    }
+    
+    console.log('✅ Successfully updated user subscription pages');
+    
+  } catch (error) {
+    console.error('❌ Error updating user subscription pages:', error);
+    throw error;
+  }
+}
 
 interface UseApiComparisonReturn {
   // State
@@ -14,7 +74,7 @@ interface UseApiComparisonReturn {
   progress: number;
 
     // Actions
-  compareStatements: (file1: File, file2: File) => Promise<void>;
+  compareStatements: (file1: File, file2: File, userId?: string) => Promise<void>;
   setError: (error: string) => void;
   clearError: () => void;
   clearResult: () => void;
@@ -45,7 +105,8 @@ export function useApiComparison(): UseApiComparisonReturn {
 
   const compareStatements = useCallback(async (
     file1: File, 
-    file2: File
+    file2: File,
+    userId?: string
   ) => {
     // Reset state
     setError(null);
@@ -85,7 +146,45 @@ export function useApiComparison(): UseApiComparisonReturn {
       
       console.log('✅ Credits check passed');
       
-      // Step 1: Process statements through API (15% -> 50%)
+      // Step 0.6: Check user's Supabase subscription pages (15% -> 20%)
+      if (userId) {
+        setProgress(20);
+        console.log('💳 Checking user subscription pages...');
+        
+        try {
+          const { data: userSubscription, error: subError } = await supabase
+            .from('user_subscriptions')
+            .select('pages_remaining, tier_id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .maybeSingle();
+          
+          if (subError) {
+            console.warn('Failed to check user subscription pages:', subError);
+          } else if (userSubscription) {
+            // Estimate pages needed (we'll know exact count after processing)
+            const estimatedPagesNeeded = 2; // Minimum 2 pages for 2 files
+            
+            if (userSubscription.pages_remaining < estimatedPagesNeeded) {
+              throw new Error(`Insufficient pages remaining: ${userSubscription.pages_remaining} available, need at least ${estimatedPagesNeeded} for comparison. Please upgrade your subscription or wait for next month's allocation.`);
+            }
+            
+            console.log('✅ User subscription check passed:', {
+              pagesRemaining: userSubscription.pages_remaining,
+              tierId: userSubscription.tier_id
+            });
+          } else {
+            console.log('⚠️ No active subscription found, proceeding with external credit check');
+          }
+        } catch (subCheckError) {
+          if (subCheckError instanceof Error) {
+            throw subCheckError; // Re-throw subscription errors
+          }
+          console.warn('Subscription check failed, proceeding with external credit check');
+        }
+      }
+      
+      // Step 1: Process statements through API (20% -> 55%)
       setProgress(25);
       console.log('📊 Processing statements through API...');
       const apiResults = await apiService.processTwoStatements(file1, file2);
@@ -123,6 +222,89 @@ export function useApiComparison(): UseApiComparisonReturn {
 
       setProgress(100);
       setResult(comparisonResult);
+      
+      // Fix 1: Automatically save comparison to Supabase usage_logs
+      if (userId) {
+        try {
+          // Use actual page counts from API response instead of hardcoded values
+          const pagesConsumed = apiResults.totalPages || 2; // Fallback to 2 if not available
+          
+          console.log('📊 Using actual page counts:', {
+            file1Pages: apiResults.file1Pages,
+            file2Pages: apiResults.file2Pages,
+            totalPages: apiResults.totalPages,
+            pagesConsumed
+          });
+          
+          // Create comparison summary for JSONB storage
+          const comparisonSummary = {
+            statement1: {
+              name: apiResults.file1Name,
+              pages: apiResults.file1Pages,
+              transactions: comparisonResult.statement1.transactions.length,
+              fullData: comparisonResult.statement1 // Store complete statement data
+            },
+            statement2: {
+              name: apiResults.file2Name,
+              pages: apiResults.file2Pages,
+              transactions: comparisonResult.statement2.transactions.length,
+              fullData: comparisonResult.statement2 // Store complete statement data
+            },
+            comparison: {
+              totalCategories: comparisonResult.comparison.length,
+              totalTransactions: comparisonResult.statement1.transactions.length + comparisonResult.statement2.transactions.length,
+              fullComparison: comparisonResult.comparison // Store complete comparison data
+            }
+          };
+          
+          // Save complete comparison data to usage_logs table
+          const { error: usageError } = await supabase
+            .from('usage_logs')
+            .insert({
+              user_id: userId,
+              pages_consumed: pagesConsumed,
+              created_at: new Date().toISOString(),
+              statement1_name: apiResults.file1Name,
+              statement2_name: apiResults.file2Name,
+              file1_pages: apiResults.file1Pages,
+              file2_pages: apiResults.file2Pages,
+              comparison_summary: comparisonSummary,
+              status: 'completed'
+            });
+          
+          if (usageError) {
+            console.error('Failed to save usage log to Supabase:', usageError);
+          } else {
+            console.log('💾 Saved complete comparison data to Supabase usage_logs');
+            
+            // Update user's subscription to deduct consumed pages
+            try {
+              await updateUserSubscriptionPages(userId, pagesConsumed);
+              console.log('💳 Updated user subscription: deducted', pagesConsumed, 'pages');
+            } catch (updateError) {
+              console.error('Failed to update user subscription pages:', updateError);
+              // Don't fail the comparison if subscription update fails
+            }
+          }
+          
+        } catch (error) {
+          console.error('Failed to save comparison data to Supabase:', error);
+        }
+      } else {
+        console.log('⚠️ No userId provided, skipping Supabase save');
+      }
+      
+      // Fix 2: Deduct credits after successful processing
+      try {
+        console.log('💳 Deducting credits after successful comparison...');
+        // Use actual pages consumed instead of hardcoded value
+        const actualPagesConsumed = apiResults.totalPages || 2;
+        await apiService.deductCreditsAfterProcessing(actualPagesConsumed);
+        console.log(`✅ Credits deducted successfully: ${actualPagesConsumed} credits for ${actualPagesConsumed} pages`);
+      } catch (error) {
+        console.error('Failed to deduct credits:', error);
+        // Don't fail the comparison if credit deduction fails
+      }
       
     } catch (err) {
       console.error('Comparison error:', err);

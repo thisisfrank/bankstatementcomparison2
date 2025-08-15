@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Download, Trash2, Eye, Calendar, Filter, Search, BarChart3, FileText } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 
 interface ComparisonHistory {
   id: string;
@@ -8,24 +10,70 @@ interface ComparisonHistory {
   statement1Name: string;
   statement2Name: string;
   result?: any; // API result data
+  userId?: string;
+  pagesConsumed?: number;
+  file1Pages?: number;
+  file2Pages?: number;
 }
 
 export default function HistoryPage({ isDark }: { isDark: boolean }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date'>('date');
   const [history, setHistory] = useState<ComparisonHistory[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Load history from localStorage
+  // Load history from enhanced Supabase usage_logs table
   useEffect(() => {
-    try {
-      const savedHistory = JSON.parse(localStorage.getItem('comparisonHistory') || '[]');
-      setHistory(savedHistory);
-    } catch (error) {
-      console.error('Failed to load history from localStorage:', error);
-      setHistory([]);
-    }
-  }, []);
+    const loadHistory = async () => {
+      try {
+        setLoading(true);
+        
+        if (user?.id) {
+          // Load complete comparison history from Supabase usage_logs
+          const { data: usageLogs, error } = await supabase
+            .from('usage_logs')
+            .select('*')
+            .eq('user_id', user.id)
+            .not('statement1_name', 'is', null) // Only get entries with comparison data
+            .order('created_at', { ascending: false });
+          
+          if (error) {
+            console.error('Failed to load usage logs from Supabase:', error);
+            setHistory([]);
+          } else {
+            console.log('📊 Loaded comparison history from Supabase:', usageLogs);
+            
+            // Transform Supabase data to ComparisonHistory format
+            const transformedHistory: ComparisonHistory[] = (usageLogs || []).map(log => ({
+              id: log.id,
+              date: log.created_at,
+              statement1Name: log.statement1_name || 'Unknown',
+              statement2Name: log.statement2_name || 'Unknown',
+              result: log.comparison_summary, // Store comparison summary as result
+              userId: log.user_id,
+              pagesConsumed: log.pages_consumed,
+              file1Pages: log.file1_pages,
+              file2Pages: log.file2_pages
+            }));
+            
+            setHistory(transformedHistory);
+          }
+        } else {
+          // Not signed in, show empty history
+          setHistory([]);
+        }
+      } catch (error) {
+        console.error('Failed to load history:', error);
+        setHistory([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHistory();
+  }, [user?.id]);
 
   const filteredHistory = history
     .filter(item => {
@@ -49,6 +97,24 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
   };
 
   const handleViewComparison = (item: ComparisonHistory) => {
+    // Extract full comparison data from the enhanced comparison_summary
+    let fullComparisonData = null;
+    
+    if (item.result && typeof item.result === 'object') {
+      // If we have the enhanced comparison_summary, extract the full data
+      if (item.result.fullComparison) {
+        // This is the new enhanced format with full data
+        fullComparisonData = {
+          statement1: item.result.statement1.fullData,
+          statement2: item.result.statement2.fullData,
+          comparison: item.result.comparison.fullComparison
+        };
+      } else {
+        // Fallback for old format or direct result data
+        fullComparisonData = item.result;
+      }
+    }
+    
     // Navigate to home page with comparison results
     navigate('/', { 
       state: { 
@@ -56,19 +122,33 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
         statement1Name: item.statement1Name,
         statement2Name: item.statement2Name,
         fromHistory: true,
-        apiResult: item.result // Pass the actual result data
+        apiResult: fullComparisonData // Pass the full comparison data
       }
     });
   };
 
-  const handleDeleteComparison = (itemId: string) => {
+  const handleDeleteComparison = async (itemId: string) => {
     try {
-      const updatedHistory = history.filter(item => item.id !== itemId);
-      setHistory(updatedHistory);
-      localStorage.setItem('comparisonHistory', JSON.stringify(updatedHistory));
-      console.log('🗑️ Deleted comparison from history');
+      if (user?.id) {
+        // Delete from Supabase
+        const { error } = await supabase
+          .from('usage_logs')
+          .delete()
+          .eq('id', itemId)
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error('Failed to delete comparison from Supabase:', error);
+          return;
+        }
+        
+        // Update local state
+        const updatedHistory = history.filter(item => item.id !== itemId);
+        setHistory(updatedHistory);
+        console.log('🗑️ Deleted comparison from Supabase');
+      }
     } catch (error) {
-      console.error('Failed to delete comparison from history:', error);
+      console.error('Failed to delete comparison:', error);
     }
   };
   return (
@@ -138,11 +218,27 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
       </div>
 
       {/* History List */}
-      {filteredHistory.length === 0 ? (
+      {loading ? (
         <div className={`text-center py-12 rounded-xl ${
           isDark ? 'bg-gray-800' : 'bg-white'
         } shadow-lg`}>
           <Clock className={`h-16 w-16 mx-auto mb-4 ${
+            isDark ? 'text-gray-600' : 'text-gray-400'
+          }`} />
+          <h3 className={`text-xl font-semibold mb-2 ${
+            isDark ? 'text-gray-300' : 'text-gray-700'
+          }`}>
+            Loading history...
+          </h3>
+          <p className={isDark ? 'text-gray-500' : 'text-gray-500'}>
+            Please wait while we fetch your comparison history.
+          </p>
+        </div>
+      ) : filteredHistory.length === 0 ? (
+        <div className={`text-center py-12 rounded-xl ${
+          isDark ? 'bg-gray-800' : 'bg-white'
+        } shadow-lg`}>
+          <FileText className={`h-16 w-16 mx-auto mb-4 ${
             isDark ? 'text-gray-600' : 'text-gray-400'
           }`} />
           <h3 className={`text-xl font-semibold mb-2 ${
@@ -186,7 +282,23 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
                       </span>
                     </div>
                     
-                    <div></div>
+                    {item.pagesConsumed && (
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className={`h-4 w-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                        <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                          {item.pagesConsumed} pages total
+                        </span>
+                      </div>
+                    )}
+                    
+                    {item.file1Pages && item.file2Pages && (
+                      <div className="flex items-center gap-2">
+                        <FileText className={`h-4 w-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                        <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                          {item.file1Pages} + {item.file2Pages} pages
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -221,8 +333,6 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
           ))}
         </div>
       )}
-
-
     </div>
   );
 }

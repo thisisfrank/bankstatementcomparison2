@@ -26,6 +26,7 @@ export interface BankStatementTransaction {
 
 export interface BankStatementConvertResponse {
   normalised: BankStatementTransaction[];
+  numberOfPages?: number; // Add page count information
 }
 
 export interface UserCreditsResponse {
@@ -363,6 +364,9 @@ export class ApiService {
     file2Result: BankStatementConvertResponse;
     file1Name: string;
     file2Name: string;
+    file1Pages: number;
+    file2Pages: number;
+    totalPages: number;
   }> {
     console.log('📤 Processing two statements following API documentation');
     
@@ -384,7 +388,7 @@ export class ApiService {
       // Step 2: Handle processing state (API Documentation: Poll every 10 seconds if PROCESSING)
       console.log('⏳ Step 2: Waiting for processing to complete...');
       const uuids = [uuid1, uuid2];
-      await this.waitForProcessingComplete(uuids);
+      const statusResults = await this.waitForProcessingComplete(uuids);
       console.log('✅ Step 2 completed: Processing finished');
       
       // Step 3: Convert statements (API Documentation: POST /BankStatement/convert?format=JSON)
@@ -394,6 +398,15 @@ export class ApiService {
         this.convertStatements([uuid2])
       ]);
       
+      // Extract page counts from status results
+      const file1Status = statusResults.find(status => status.uuid === uuid1);
+      const file2Status = statusResults.find(status => status.uuid === uuid2);
+      
+      const file1Pages = file1Status?.numberOfPages || 1; // Default to 1 if not available
+      const file2Pages = file2Status?.numberOfPages || 1; // Default to 1 if not available
+      const totalPages = file1Pages + file2Pages;
+      
+      console.log('📊 Page counts:', { file1Pages, file2Pages, totalPages });
       console.log('✅ Step 3 completed: Conversion finished');
       console.log('✅ All steps completed successfully');
       
@@ -401,7 +414,10 @@ export class ApiService {
         file1Result: convertResult1[0],
         file2Result: convertResult2[0],
         file1Name: file1.name,
-        file2Name: file2.name
+        file2Name: file2.name,
+        file1Pages,
+        file2Pages,
+        totalPages
       };
     } catch (error) {
       // Enhanced error context
@@ -415,7 +431,7 @@ export class ApiService {
   }
 
   // Wait for processing to complete - API Documentation: Poll status every 10 seconds
-  private async waitForProcessingComplete(uuids: string[], maxAttempts: number = 30): Promise<void> {
+  private async waitForProcessingComplete(uuids: string[], maxAttempts: number = 30): Promise<BankStatementStatusResponse[]> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         const statusResults = await this.checkUploadStatus(uuids);
@@ -423,7 +439,7 @@ export class ApiService {
         
         if (allReady) {
           console.log('✅ All files ready for conversion');
-          return;
+          return statusResults; // Return status results for page count extraction
         }
         
         const hasError = statusResults.some(result => result.state === 'ERROR');
@@ -610,6 +626,30 @@ export class ApiService {
     }
   }
 
+  // Deduct credits after successful processing
+  async deductCreditsAfterProcessing(fileCount: number = 2): Promise<void> {
+    try {
+      console.log('💳 Deducting credits after successful processing...');
+      
+      // Call API to deduct credits - this would typically be a POST to a deduction endpoint
+      // For now, we'll log the deduction since the exact API endpoint isn't specified
+      console.log(`📊 Deducting ${fileCount} credits for ${fileCount} processed files`);
+      
+      // TODO: Replace with actual API call when endpoint is available
+      // Example: await this.makeRequest('/credits/deduct', {
+      //   method: 'POST',
+      //   body: JSON.stringify({ filesProcessed: fileCount }),
+      //   headers: { 'Content-Type': 'application/json' }
+      // }, 0, 'Credit Deduction');
+      
+      // For now, just log the deduction
+      console.log('✅ Credit deduction logged (API endpoint to be implemented)');
+      
+    } catch (error) {
+      console.error('❌ Failed to deduct credits:', error);
+      throw error;
+    }
+  }
 
 }
 
