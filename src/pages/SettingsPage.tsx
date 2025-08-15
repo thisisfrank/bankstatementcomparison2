@@ -176,13 +176,18 @@ export default function SettingsPage({
                 </div>
 
                 <div className="flex items-end">
-                  <button className={`w-full px-4 py-3 rounded-lg transition-colors font-medium ${
-                    isDark 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}>
+                  <a 
+                    href={`https://billing.stripe.com/p/login/test_dRmdRbcurfW97JAdhBgUM00?prefilled_email=${user?.email || ''}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`w-full px-4 py-3 rounded-lg transition-colors font-medium text-center ${
+                      isDark 
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
                     Manage Subscription
-                  </button>
+                  </a>
                 </div>
               </div>
 
