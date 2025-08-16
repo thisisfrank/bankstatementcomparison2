@@ -1,0 +1,10 @@
+{
+  "name": "stripe-webhook",
+  "version": "1.0.0",
+  "description": "Stripe webhook handler for bank statement comparison app",
+  "main": "index.ts",
+  "dependencies": {
+    "stripe": "^14.21.0"
+  }
+}
+

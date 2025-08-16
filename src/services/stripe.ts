@@ -93,8 +93,8 @@ export const handleSuccessfulPayment = async (subscriptionId: string, userId: st
 // Get customer portal URL (for managing subscriptions)
 export const getCustomerPortalUrl = async (customerId: string, returnUrl?: string) => {
   try {
-    // This would typically call your backend to create a portal session
-    const response = await fetch('/api/create-portal-session', {
+    // Call Supabase Edge Function to create a portal session
+    const response = await fetch('/functions/v1/create-portal-session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
