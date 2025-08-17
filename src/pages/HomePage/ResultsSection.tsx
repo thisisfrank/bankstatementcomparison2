@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { FileText, Download, BarChart3, Home, Car, Utensils, ShoppingBag, Gamepad2, Heart, Briefcase, MoreHorizontal, CreditCard, ShoppingCart } from 'lucide-react';
 import { CategoryComparison } from './index';
 import TransactionManager, { Transaction } from '../../components/TransactionManager';
+import { ExportService } from '../../services/exportService';
+import FeedbackForm from '../../components/FeedbackForm';
 
 // Helper function to get category icons
 const getCategoryIcon = (category: string): React.ReactNode => {
@@ -242,17 +244,51 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
   const [editableData, setEditableData] = useState<CategoryComparison[]>(mockComparison);
   const [editMode, setEditMode] = useState(false);
 
+  // Debug logging for apiResult structure
+  console.log('🔍 ResultsSection: apiResult received:', {
+    hasApiResult: !!apiResult,
+    apiResultType: typeof apiResult,
+    keys: apiResult ? Object.keys(apiResult) : null,
+    statement1Keys: apiResult?.statement1 ? Object.keys(apiResult.statement1) : null,
+    statement2Keys: apiResult?.statement2 ? Object.keys(apiResult.statement2) : null,
+    comparisonType: typeof apiResult?.comparison,
+    isComparisonArray: Array.isArray(apiResult?.comparison)
+  });
+
   // Use API data if available, otherwise fall back to editable mock data for preview
-  const displayData = apiResult?.comparison.map((item: any) => ({
-    category: item.category,
-    icon: getCategoryIcon(item.category),
-    statement1: item.statement1Total,
-    statement2: item.statement2Total,
-    difference: item.difference,
-    percentChange: item.percentChange,
-    transactions1: item.transactions1,
-    transactions2: item.transactions2
-  })) || editableData;
+  const displayData = (() => {
+    // Check if apiResult exists and has the expected structure
+    if (apiResult?.comparison && Array.isArray(apiResult.comparison)) {
+      try {
+        return apiResult.comparison.map((item: any) => ({
+          category: item.category,
+          icon: getCategoryIcon(item.category),
+          statement1: item.statement1Total,
+          statement2: item.statement2Total,
+          difference: item.difference,
+          percentChange: item.percentChange,
+          transactions1: item.transactions1 || [],
+          transactions2: item.transactions2 || []
+        }));
+      } catch (error) {
+        console.error('Error processing comparison data:', error);
+        return editableData;
+      }
+    }
+    
+    // If apiResult exists but doesn't have the expected structure, log it for debugging
+    if (apiResult) {
+      console.log('⚠️ apiResult structure:', {
+        hasComparison: !!apiResult.comparison,
+        comparisonType: typeof apiResult.comparison,
+        isArray: Array.isArray(apiResult.comparison),
+        keys: Object.keys(apiResult),
+        comparisonKeys: apiResult.comparison ? Object.keys(apiResult.comparison) : null
+      });
+    }
+    
+    return editableData;
+  })();
 
   // Convert transactions to have IDs for editing
   const convertTransactionsWithIds = (transactions: any[]): Transaction[] => {
@@ -292,6 +328,36 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
       }
       return item;
     }));
+  };
+
+  const handleExportPDF = () => {
+    try {
+      const exportData = ExportService.prepareExportData(
+        displayData,
+        statementLabels.statement1,
+        statementLabels.statement2,
+        apiResult
+      );
+      ExportService.exportToPDF(exportData);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const exportData = ExportService.prepareExportData(
+        displayData,
+        statementLabels.statement1,
+        statementLabels.statement2,
+        apiResult
+      );
+      ExportService.exportToCSV(exportData);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Failed to export CSV. Please try again.');
+    }
   };
 
   return (
@@ -356,17 +422,17 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 Withdrawals
               </span>
-                             <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                 ${apiResult?.statement1.summary.totalWithdrawals.toFixed(2) || '1,529.00'}
-               </span>
-             </div>
-             <div className="flex justify-between items-center">
-               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                 Deposits
-               </span>
-               <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                 ${apiResult?.statement1.summary.totalDeposits.toFixed(2) || '3,850.00'}
-               </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                ${apiResult?.statement1?.summary?.totalWithdrawals?.toFixed(2) || '1,529.00'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Deposits
+              </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                ${apiResult?.statement1?.summary?.totalDeposits?.toFixed(2) || '3,850.00'}
+              </span>
             </div>
           </div>
         </div>
@@ -385,17 +451,17 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 Withdrawals
               </span>
-                             <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                 ${apiResult?.statement2.summary.totalWithdrawals.toFixed(2) || '1,899.00'}
-               </span>
-             </div>
-             <div className="flex justify-between items-center">
-               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                 Deposits
-               </span>
-               <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                 ${apiResult?.statement2.summary.totalDeposits.toFixed(2) || '4,120.00'}
-               </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                ${apiResult?.statement2?.summary?.totalWithdrawals?.toFixed(2) || '1,899.00'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Deposits
+              </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                ${apiResult?.statement2?.summary?.totalDeposits?.toFixed(2) || '4,120.00'}
+              </span>
             </div>
           </div>
         </div>
@@ -589,6 +655,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
       <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
         <div className="flex gap-4 w-full">
           <button 
+            onClick={handleExportPDF}
             disabled={!isSignedIn}
             className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
               isSignedIn
@@ -604,6 +671,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
           </button>
           
           <button 
+            onClick={handleExportCSV}
             disabled={!isSignedIn}
             className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
               isSignedIn
@@ -611,7 +679,7 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
                   ? 'bg-green-600 hover:bg-green-700 text-white' 
                   : 'bg-green-600 hover:bg-green-700 text-white'
                 : isDark
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}>
             <Download className="h-5 w-5" />
@@ -629,6 +697,11 @@ export default function ResultsSection({ isDark, isSignedIn, statementLabels, ap
           <BarChart3 className="h-5 w-5" />
           Generate New Comparison
         </button>
+        
+        {/* Feedback Button */}
+        <div className="flex justify-center pt-2">
+          <FeedbackForm isDark={isDark} context="comparison" />
+        </div>
       </div>
     </>
   );

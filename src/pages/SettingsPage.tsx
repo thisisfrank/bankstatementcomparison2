@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Trash2, User, Mail, Key, Globe, Palette, CreditCard, RefreshCw } from 'lucide-react';
+import { Moon, Sun, Trash2, User, Mail, Key, Globe, Palette, CreditCard, RefreshCw, Check, X, MessageCircle } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useSubscription } from '../hooks/useSubscription';
+import { useSearchParams } from 'react-router-dom';
+import FeedbackForm from '../components/FeedbackForm';
 
 export default function SettingsPage({ 
   isDark, 
@@ -19,6 +21,8 @@ export default function SettingsPage({
   });
   
   const { subscriptionData, isLoading, error, refreshSubscription } = useSubscription();
+  const [searchParams] = useSearchParams();
+  const [showSuccess, setShowSuccess] = useState(false);
   
   console.log('⚙️ SettingsPage: useSubscription hook returned:', {
     hasSubscriptionData: !!subscriptionData,
@@ -26,6 +30,18 @@ export default function SettingsPage({
     error,
     subscriptionData
   });
+
+  // Check for success parameter from Stripe checkout
+  useEffect(() => {
+    const success = searchParams.get('success');
+    if (success === 'true') {
+      setShowSuccess(true);
+      // Refresh subscription data
+      refreshSubscription();
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setShowSuccess(false), 5000);
+    }
+  }, [searchParams, refreshSubscription]);
 
   // Debug effect to track changes
   useEffect(() => {
@@ -39,6 +55,22 @@ export default function SettingsPage({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Success Message */}
+      {showSuccess && (
+        <div className="mb-6">
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2 shadow-lg">
+            <Check className="h-5 w-5" />
+            <span>Payment successful! Your subscription is now active.</span>
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="ml-auto text-green-500 hover:text-green-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <h1 className={`text-4xl font-bold mb-4 ${
@@ -138,20 +170,25 @@ export default function SettingsPage({
                     </span>
                     {subscriptionData.pagesUsed > 0 && (
                       <div className="text-xs mt-1 opacity-75">
-                        Used: {subscriptionData.pagesUsed} pages
+                       
                       </div>
                     )}
                   </div>
                 </div>
 
                 <div className="flex items-end">
-                  <button className={`w-full px-4 py-3 rounded-lg transition-colors font-medium ${
-                    isDark 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}>
+                  <a 
+                    href={`https://billing.stripe.com/p/login/test_dRmdRbcurfW97JAdhBgUM00?prefilled_email=${user?.email || ''}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`w-full px-4 py-3 rounded-lg transition-colors font-medium text-center ${
+                      isDark 
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
                     Manage Subscription
-                  </button>
+                  </a>
                 </div>
               </div>
 
@@ -291,6 +328,34 @@ export default function SettingsPage({
           </div>
         </div>
 
+
+        {/* Feedback */}
+        <div className={`rounded-xl p-6 ${
+          isDark ? 'bg-gray-800' : 'bg-white'
+        } shadow-lg`}>
+          <div className="flex items-center gap-3 mb-6">
+            <MessageCircle className={`h-6 w-6 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+            <h2 className={`text-xl font-semibold ${
+              isDark ? 'text-gray-200' : 'text-gray-800'
+            }`}>
+              Feedback & Support
+            </h2>
+          </div>
+
+          <div className={`p-4 rounded-lg border ${
+            isDark 
+              ? 'bg-blue-900/20 border-blue-700/50' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
+            <h3 className={`font-medium mb-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+              Help Us Improve
+            </h3>
+            <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Share your thoughts, report issues, or suggest improvements. Your feedback helps us make this tool better.
+            </p>
+            <FeedbackForm isDark={isDark} context="general" />
+          </div>
+        </div>
 
         {/* Delete Account */}
         <div className={`rounded-xl p-6 ${

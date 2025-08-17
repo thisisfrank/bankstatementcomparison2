@@ -11,7 +11,8 @@ export class TransactionCategorizer {
     
     // Income patterns
     if (lowerDesc.includes('upwork') || lowerDesc.includes('stripe') || 
-        lowerDesc.includes('paypal transfer') || lowerDesc.includes('atm cash deposit')) {
+        lowerDesc.includes('paypal transfer') || lowerDesc.includes('atm cash deposit') ||
+        lowerDesc.includes('direct deposit')) {
       return 'Income';
     }
     
@@ -24,7 +25,8 @@ export class TransactionCategorizer {
         lowerDesc.includes('papa chevos') || lowerDesc.includes('panda express') ||
         lowerDesc.includes('buffalo wild') || lowerDesc.includes('popeyes') ||
         lowerDesc.includes('filibertos') || lowerDesc.includes('kfc') ||
-        lowerDesc.includes('new asian fusion') || lowerDesc.includes('az pho grill')) {
+        lowerDesc.includes('shakeshack') || lowerDesc.includes('new asian fusion') || 
+        lowerDesc.includes('az pho grill')) {
       return 'Food & Dining';
     }
     
@@ -33,7 +35,10 @@ export class TransactionCategorizer {
         lowerDesc.includes('circle k') || lowerDesc.includes('uber') ||
         lowerDesc.includes('lyft') || lowerDesc.includes('autozone') ||
         lowerDesc.includes('los perez tire') || lowerDesc.includes('clean freak') ||
-        lowerDesc.includes('ls bikemasters') || lowerDesc.includes('ace parking')) {
+        lowerDesc.includes('ls bikemasters') || lowerDesc.includes('ace parking') ||
+        lowerDesc.includes('parking') || lowerDesc.includes('car wash') ||
+        lowerDesc.includes('auto parts') || lowerDesc.includes('oreilly') ||
+        lowerDesc.includes('advance auto') || lowerDesc.includes('napa auto')) {
       return 'Transportation';
     }
     
@@ -41,32 +46,33 @@ export class TransactionCategorizer {
     if (lowerDesc.includes('walmart') || lowerDesc.includes('target') || 
         lowerDesc.includes('barnes and noble') || lowerDesc.includes('dollartree') ||
         lowerDesc.includes('dollar tr') || lowerDesc.includes('amazon') ||
-        lowerDesc.includes('gravitate smoke') || lowerDesc.includes('misc')) {
+        lowerDesc.includes('gravitate smoke') || lowerDesc.includes('misc') ||
+        lowerDesc.includes('costco') || lowerDesc.includes('home depot') ||
+        lowerDesc.includes('lowes') || lowerDesc.includes('best buy') ||
+        lowerDesc.includes('macy') || lowerDesc.includes('kohl') ||
+        lowerDesc.includes('tj maxx') || lowerDesc.includes('marshalls')) {
       return 'Shopping';
     }
     
-    // Healthcare patterns
-    if (lowerDesc.includes('dr.') || lowerDesc.includes('doctor') || 
-        lowerDesc.includes('medical') || lowerDesc.includes('health')) {
-      return 'Healthcare';
-    }
-    
-    // Business & Professional patterns
-    if (lowerDesc.includes('adobe') || lowerDesc.includes('anthropic') || 
-        lowerDesc.includes('dropbox') || lowerDesc.includes('x corp')) {
-      return 'Business & Professional';
-    }
-    
-    // Subscriptions patterns
+    // Subscriptions patterns (including business software tools)
     if (lowerDesc.includes('amazon prime') || lowerDesc.includes('apple.com') || 
         lowerDesc.includes('netflix') || lowerDesc.includes('spotify') ||
         lowerDesc.includes('verizon') || lowerDesc.includes('centurylink') ||
-        lowerDesc.includes('progressive') || lowerDesc.includes('eos fitness')) {
+        lowerDesc.includes('progressive') || lowerDesc.includes('eos fitness') ||
+        lowerDesc.includes('hulu') || lowerDesc.includes('disney') ||
+        lowerDesc.includes('youtube') || lowerDesc.includes('peacock') ||
+        lowerDesc.includes('adobe') || lowerDesc.includes('anthropic') || 
+        lowerDesc.includes('dropbox') || lowerDesc.includes('x corp') ||
+        lowerDesc.includes('office') || lowerDesc.includes('zoom') ||
+        lowerDesc.includes('slack') || lowerDesc.includes('notion')) {
       return 'Subscriptions';
     }
     
     // Groceries patterns (Frys Food)
-    if (lowerDesc.includes('frys food')) {
+    if (lowerDesc.includes('frys food') || lowerDesc.includes('safeway') ||
+        lowerDesc.includes('albertsons') || lowerDesc.includes('kroger') ||
+        lowerDesc.includes('whole foods') || lowerDesc.includes('trader joe') ||
+        lowerDesc.includes('sprouts') || lowerDesc.includes('winco')) {
       return 'Groceries';
     }
     
@@ -83,8 +89,6 @@ export class TransactionCategorizer {
       'Food & Dining', 
       'Transportation',
       'Shopping',
-      'Healthcare',
-      'Business & Professional',
       'Subscriptions',
       'Groceries',
       'Other'

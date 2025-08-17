@@ -41,6 +41,22 @@ function Header({ isDark, isSignedIn, onSignOut, onSignInClick }: {
             {isSignedIn ? (
               <>
                 <Link
+                  to="/pricing"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    isActive('/pricing')
+                      ? isDark
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-blue-600 text-white'
+                      : isDark 
+                        ? 'text-gray-300 hover:text-white hover:bg-gray-800' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <PricingIcon className="h-4 w-4" />
+                  Plans
+                </Link>
+                
+                <Link
                   to="/history"
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
                     isActive('/history')
@@ -143,7 +159,7 @@ function Header({ isDark, isSignedIn, onSignOut, onSignInClick }: {
 }
 
 function AppContent() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { isSignedIn, signOut, signIn, signUp, loading, user } = useAuth();
   const navigate = useNavigate();
@@ -189,7 +205,7 @@ function AppContent() {
       
       <Routes>
         <Route path="/" element={<HomePage isDark={isDarkMode} isSignedIn={isSignedIn} />} />
-        <Route path="/pricing" element={<PricingPage isDark={isDarkMode} />} />
+        <Route path="/pricing" element={<PricingPage isDark={isDarkMode} onShowAuthModal={() => setShowAuthModal(true)} />} />
         <Route path="/history" element={<HistoryPage isDark={isDarkMode} />} />
         <Route path="/settings" element={<SettingsPage isDark={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} user={user} />} />
       </Routes>

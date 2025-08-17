@@ -54,4 +54,10 @@ export interface UsageLog {
   user_id: string
   pages_consumed: number
   created_at: string
+  statement1_name?: string
+  statement2_name?: string
+  file1_pages?: number
+  file2_pages?: number
+  comparison_summary?: any
+  status?: string
 }

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Download, Trash2, Eye, Calendar, Filter, Search, BarChart3, FileText } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
+import { ExportService } from '../services/exportService';
 
 interface ComparisonHistory {
   id: string;
@@ -8,24 +11,95 @@ interface ComparisonHistory {
   statement1Name: string;
   statement2Name: string;
   result?: any; // API result data
+  userId?: string;
+  pagesConsumed?: number;
+  file1Pages?: number;
+  file2Pages?: number;
 }
 
 export default function HistoryPage({ isDark }: { isDark: boolean }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date'>('date');
   const [history, setHistory] = useState<ComparisonHistory[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Load history from localStorage
+  // Load history from enhanced Supabase usage_logs table
   useEffect(() => {
-    try {
-      const savedHistory = JSON.parse(localStorage.getItem('comparisonHistory') || '[]');
-      setHistory(savedHistory);
-    } catch (error) {
-      console.error('Failed to load history from localStorage:', error);
-      setHistory([]);
-    }
-  }, []);
+    const loadHistory = async () => {
+      try {
+        setLoading(true);
+        console.log('🔄 HistoryPage: Starting to load history for user:', user?.id);
+        
+        if (user?.id) {
+          // Load complete comparison history from Supabase usage_logs
+          console.log('🔍 HistoryPage: Querying usage_logs table...');
+          
+          // First, try a simple query to see if the table exists and has any data
+          const { data: testData, error: testError } = await supabase
+            .from('usage_logs')
+            .select('count')
+            .eq('user_id', user.id);
+          
+          console.log('🧪 HistoryPage: Test query result:', { testData, testError });
+          
+          // Now try the full query
+          const { data: usageLogs, error } = await supabase
+            .from('usage_logs')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+          
+          console.log('📊 HistoryPage: Supabase query result:', { usageLogs, error });
+          
+          if (error) {
+            console.error('❌ HistoryPage: Failed to load usage logs from Supabase:', error);
+            setHistory([]);
+          } else {
+            console.log('✅ HistoryPage: Successfully loaded usage logs:', usageLogs);
+            
+            if (!usageLogs || usageLogs.length === 0) {
+              console.log('ℹ️ HistoryPage: No usage logs found for user');
+              setHistory([]);
+              return;
+            }
+            
+            // Transform Supabase data to ComparisonHistory format
+            const transformedHistory: ComparisonHistory[] = usageLogs.map(log => {
+              console.log('🔄 HistoryPage: Transforming log:', log);
+              return {
+                id: log.id,
+                date: log.created_at,
+                statement1Name: log.statement1_name || 'Unknown',
+                statement2Name: log.statement2_name || 'Unknown',
+                result: log.comparison_summary, // Store comparison summary as result
+                userId: log.user_id,
+                pagesConsumed: log.pages_consumed,
+                file1Pages: log.file1_pages,
+                file2Pages: log.file2_pages
+              };
+            });
+            
+            console.log('✅ HistoryPage: Transformed history:', transformedHistory);
+            setHistory(transformedHistory);
+          }
+        } else {
+          // Not signed in, show empty history
+          console.log('ℹ️ HistoryPage: No user ID, showing empty history');
+          setHistory([]);
+        }
+      } catch (error) {
+        console.error('❌ HistoryPage: Unexpected error loading history:', error);
+        setHistory([]);
+      } finally {
+        setLoading(false);
+        console.log('🏁 HistoryPage: Finished loading history');
+      }
+    };
+
+    loadHistory();
+  }, [user?.id]);
 
   const filteredHistory = history
     .filter(item => {
@@ -49,6 +123,40 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
   };
 
   const handleViewComparison = (item: ComparisonHistory) => {
+    // Extract full comparison data from the enhanced comparison_summary
+    let fullComparisonData = null;
+    
+    console.log('🔍 HistoryPage: Processing comparison item for view:', item);
+    
+    if (item.result && typeof item.result === 'object') {
+      // If we have the enhanced comparison_summary, extract the full data
+      if (item.result.fullComparison) {
+        console.log('📊 HistoryPage: Using enhanced comparison_summary format');
+        // This is the new enhanced format with full data
+        fullComparisonData = {
+          statement1: item.result.statement1.fullData,
+          statement2: item.result.statement2.fullData,
+          comparison: item.result.comparison.fullComparison
+        };
+      } else if (item.result.comparison && Array.isArray(item.result.comparison)) {
+        console.log('📊 HistoryPage: Using direct comparison array format');
+        // Direct comparison array format
+        fullComparisonData = {
+          statement1: item.result.statement1 || {},
+          statement2: item.result.statement2 || {},
+          comparison: item.result.comparison
+        };
+      } else {
+        console.log('📊 HistoryPage: Using fallback result format');
+        // Fallback for old format or direct result data
+        fullComparisonData = item.result;
+      }
+      
+      console.log('✅ HistoryPage: Transformed comparison data:', fullComparisonData);
+    } else {
+      console.warn('⚠️ HistoryPage: No result data found for comparison item');
+    }
+    
     // Navigate to home page with comparison results
     navigate('/', { 
       state: { 
@@ -56,19 +164,127 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
         statement1Name: item.statement1Name,
         statement2Name: item.statement2Name,
         fromHistory: true,
-        apiResult: item.result // Pass the actual result data
+        apiResult: fullComparisonData // Pass the full comparison data
       }
     });
   };
 
-  const handleDeleteComparison = (itemId: string) => {
+  const handleDeleteComparison = async (itemId: string) => {
     try {
-      const updatedHistory = history.filter(item => item.id !== itemId);
-      setHistory(updatedHistory);
-      localStorage.setItem('comparisonHistory', JSON.stringify(updatedHistory));
-      console.log('🗑️ Deleted comparison from history');
+      if (user?.id) {
+        // Delete from Supabase
+        const { error } = await supabase
+          .from('usage_logs')
+          .delete()
+          .eq('id', itemId)
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error('Failed to delete comparison from Supabase:', error);
+          return;
+        }
+        
+        // Update local state
+        const updatedHistory = history.filter(item => item.id !== itemId);
+        setHistory(updatedHistory);
+        console.log('🗑️ Deleted comparison from Supabase');
+      }
     } catch (error) {
-      console.error('Failed to delete comparison from history:', error);
+      console.error('Failed to delete comparison:', error);
+    }
+  };
+
+  const handleExportPDF = (item: ComparisonHistory) => {
+    try {
+      if (!item.result) {
+        alert('No comparison data available for export.');
+        return;
+      }
+
+      // Extract comparison data from the stored result
+      let comparisonData = null;
+      if (item.result.fullComparison) {
+        comparisonData = item.result.fullComparison;
+      } else if (item.result.comparison && Array.isArray(item.result.comparison)) {
+        comparisonData = item.result.comparison;
+      } else {
+        comparisonData = item.result;
+      }
+
+      if (!comparisonData) {
+        alert('Comparison data format not supported for export.');
+        return;
+      }
+
+      // Transform the data to match the export format
+      const categories = comparisonData.map((cat: any) => ({
+        category: cat.category,
+        statement1: cat.statement1Total || 0,
+        statement2: cat.statement2Total || 0,
+        difference: cat.difference || 0,
+        percentChange: cat.percentChange || 0,
+        transactions1: cat.transactions1 || [],
+        transactions2: cat.transactions2 || []
+      }));
+
+      const exportData = ExportService.prepareExportData(
+        categories,
+        item.statement1Name,
+        item.statement2Name,
+        item.result
+      );
+
+      ExportService.exportToPDF(exportData);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    }
+  };
+
+  const handleExportCSV = (item: ComparisonHistory) => {
+    try {
+      if (!item.result) {
+        alert('No comparison data available for export.');
+        return;
+      }
+
+      // Extract comparison data from the stored result
+      let comparisonData = null;
+      if (item.result.fullComparison) {
+        comparisonData = item.result.fullComparison;
+      } else if (item.result.comparison && Array.isArray(item.result.comparison)) {
+        comparisonData = item.result.comparison;
+      } else {
+        comparisonData = item.result;
+      }
+
+      if (!comparisonData) {
+        alert('Comparison data format not supported for export.');
+        return;
+      }
+
+      // Transform the data to match the export format
+      const categories = comparisonData.map((cat: any) => ({
+        category: cat.category,
+        statement1: cat.statement1Total || 0,
+        statement2: cat.statement2Total || 0,
+        difference: cat.difference || 0,
+        percentChange: cat.percentChange || 0,
+        transactions1: cat.transactions1 || [],
+        transactions2: cat.transactions2 || []
+      }));
+
+      const exportData = ExportService.prepareExportData(
+        categories,
+        item.statement1Name,
+        item.statement2Name,
+        item.result
+      );
+
+      ExportService.exportToCSV(exportData);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Failed to export CSV. Please try again.');
     }
   };
   return (
@@ -138,7 +354,7 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
       </div>
 
       {/* History List */}
-      {filteredHistory.length === 0 ? (
+      {loading ? (
         <div className={`text-center py-12 rounded-xl ${
           isDark ? 'bg-gray-800' : 'bg-white'
         } shadow-lg`}>
@@ -148,14 +364,44 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
           <h3 className={`text-xl font-semibold mb-2 ${
             isDark ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            No comparisons found
+            Loading history...
+          </h3>
+          <p className={isDark ? 'text-gray-500' : 'text-gray-500'}>
+            Please wait while we fetch your comparison history.
+          </p>
+        </div>
+      ) : filteredHistory.length === 0 ? (
+        <div className={`text-center py-12 rounded-xl ${
+          isDark ? 'bg-gray-800' : 'bg-white'
+        } shadow-lg`}>
+          <FileText className={`h-16 w-16 mx-auto mb-4 ${
+            isDark ? 'text-gray-600' : 'text-gray-400'
+          }`} />
+          <h3 className={`text-xl font-semibold mb-2 ${
+            isDark ? 'text-gray-300' : 'text-gray-700'
+          }`}>
+            {searchTerm ? 'No comparisons found' : 'No comparison history yet'}
           </h3>
           <p className={isDark ? 'text-gray-500' : 'text-gray-500'}>
             {searchTerm 
               ? 'Try adjusting your search terms'
-              : 'Start by creating your first comparison'
+              : 'Start by creating your first comparison. Your comparison history will appear here once you run some comparisons.'
             }
           </p>
+          {!searchTerm && (
+            <div className="mt-4">
+              <button
+                onClick={() => navigate('/')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isDark 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                Go to Comparison Tool
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -186,7 +432,23 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
                       </span>
                     </div>
                     
-                    <div></div>
+                    {item.pagesConsumed && (
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className={`h-4 w-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                        <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                          {item.pagesConsumed} pages total
+                        </span>
+                      </div>
+                    )}
+                    
+                    {item.file1Pages && item.file2Pages && (
+                      <div className="flex items-center gap-2">
+                        <FileText className={`h-4 w-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                        <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                          {item.file1Pages} + {item.file2Pages} pages
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -202,6 +464,30 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
                     title="View Details"
                   >
                     <Eye className="h-5 w-5" />
+                  </button>
+                  
+                  <button
+                    onClick={() => handleExportPDF(item)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isDark 
+                        ? 'hover:bg-orange-900/20 text-orange-400 hover:text-orange-300' 
+                        : 'hover:bg-orange-50 text-orange-500 hover:text-orange-700'
+                    }`}
+                    title="Export PDF"
+                  >
+                    <Download className="h-5 w-5" />
+                  </button>
+                  
+                  <button
+                    onClick={() => handleExportCSV(item)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isDark 
+                        ? 'hover:bg-green-900/20 text-green-400 hover:text-green-300' 
+                        : 'hover:bg-green-50 text-green-500 hover:text-green-700'
+                    }`}
+                    title="Export CSV"
+                  >
+                    <Download className="h-5 w-5" />
                   </button>
                   
                   <button
@@ -221,8 +507,6 @@ export default function HistoryPage({ isDark }: { isDark: boolean }) {
           ))}
         </div>
       )}
-
-
     </div>
   );
 }
