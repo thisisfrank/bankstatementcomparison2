@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Star, Zap, Shield, Download, BarChart3, X, AlertCircle } from 'lucide-react';
+import { Check, Star, Zap, Shield, Download, BarChart3, X, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { redirectToPaymentLink, StripeTier } from '../services/stripe';
 import { useSearchParams } from 'react-router-dom';
@@ -13,6 +13,7 @@ export default function PricingPage({ isDark, onShowAuthModal }: PricingPageProp
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [expandedFAQs, setExpandedFAQs] = useState<number[]>([]);
   const { isSignedIn, user } = useAuth();
   const [searchParams] = useSearchParams();
 
@@ -61,6 +62,14 @@ export default function PricingPage({ isDark, onShowAuthModal }: PricingPageProp
 
   const getButtonDisabled = (tier: string) => {
     return false; // No loading states needed for direct links
+  };
+
+  const toggleFAQ = (index: number) => {
+    setExpandedFAQs(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
   };
 
   return (
@@ -300,10 +309,11 @@ export default function PricingPage({ isDark, onShowAuthModal }: PricingPageProp
               <Shield className={`h-8 w-8 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             </div>
             <h3 className={`font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-              100% Private
+            No PDFs Stored
             </h3>
             <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-              Your data is processed locally and never stored on our servers
+            We only keep your spending summaries - never 
+            your original bank statements or account details
             </p>
           </div>
           
@@ -317,49 +327,72 @@ export default function PricingPage({ isDark, onShowAuthModal }: PricingPageProp
               Smart Analysis
             </h3>
             <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-              AI-powered categorization with beautiful charts and insights
+              AI-powered categorization for crystal clear comparisons
             </p>
           </div>
         </div>
       </div>
 
-      {/* FAQ */}
-      <div className={`rounded-xl p-8 ${
-        isDark ? 'bg-gray-800' : 'bg-gray-50'
-      }`}>
+             {/* FAQ */}
+       <div className={`rounded-xl p-8 ${
+         isDark ? 'bg-transparent' : 'bg-gray-50'
+       }`}>
         <h2 className={`text-2xl font-bold text-center mb-8 ${
           isDark ? 'text-gray-200' : 'text-gray-800'
         }`}>
           Frequently Asked Questions
         </h2>
         
-        <div className="space-y-6">
-          <div>
-            <h3 className={`font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-              Which banks are supported?
-            </h3>
-            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-              We support PDF statements from Wells Fargo, Chase, Bank of America, Citi, and most major banks. If your bank isn't supported, contact us!
-            </p>
-          </div>
-          
-          <div>
-            <h3 className={`font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-              Is my financial data safe?
-            </h3>
-            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-              Absolutely. All processing happens in your browser - we never see or store your bank statements. Your data never leaves your device.
-            </p>
-          </div>
-          
-          <div>
-            <h3 className={`font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-              Can I get a refund?
-            </h3>
-            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-              Yes! We offer a 30-day money-back guarantee. If you're not satisfied, contact us for a full refund.
-            </p>
-          </div>
+        <div className="space-y-4">
+          {[
+            {
+              question: "Who is this tool for?",
+              answer: "Perfect for co-parents tracking shared expenses, roommates splitting costs, couples managing joint finances, or anyone wanting to compare their spending patterns month-to-month."
+            },
+            {
+              question: "Is there a file size limit?",
+              answer: "Yes, we recommend keeping bank statement files under 10MB for optimal processing speed. Most monthly bank statements are well under this limit."
+            },
+            {
+              question: "Which banks are supported?",
+              answer: "We support PDF statements from Wells Fargo, Chase, Bank of America, Citi, and most major banks. If your bank isn't supported, contact us!"
+            },
+            {
+              question: "Is my financial data safe?",
+              answer: "Yes, we use industry-standard security practices. Your PDF files are processed securely and we only store the categorized spending summaries (not your raw transaction details or account numbers). All data is encrypted and stored securely in our database."
+            },
+            {
+              question: "Do you store my bank statements?",
+              answer: "We do not store your original PDF files. After processing, we only keep the categorized spending totals and comparison results associated with your account so you can access your analysis history."
+            },
+            {
+              question: "Can I get a refund?",
+              answer: "Yes! We offer a 30-day money-back guarantee. If you're not satisfied, contact us for a full refund."
+            }
+          ].map((faq, index) => (
+            <div key={index} className={`border rounded-lg ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+              <button
+                onClick={() => toggleFAQ(index)}
+                className={`w-full px-6 py-4 text-left flex items-center justify-between transition-colors ${
+                  isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+                }`}
+              >
+                <h3 className={`font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                  {faq.question}
+                </h3>
+                {expandedFAQs.includes(index) ? (
+                  <ChevronDown className={`h-5 w-5 transition-transform ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                ) : (
+                  <ChevronRight className={`h-5 w-5 transition-transform ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                )}
+              </button>
+              {expandedFAQs.includes(index) && (
+                <div className={`px-6 pb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {faq.answer}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>

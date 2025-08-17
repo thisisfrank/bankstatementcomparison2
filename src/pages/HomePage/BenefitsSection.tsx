@@ -14,7 +14,7 @@ export default function BenefitsSection({ isDark }: BenefitsSectionProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <section className={`py-20 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <section className={`py-20 ${isDark ? 'bg-transparent' : 'bg-gray-50'}`}>
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -26,7 +26,7 @@ export default function BenefitsSection({ isDark }: BenefitsSectionProps) {
           <p className={`text-lg ${
             isDark ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            Use to track personal spending changes or compare to others
+            Use to track personal spending changes or compare your spending to others
           </p>
         </div>
 

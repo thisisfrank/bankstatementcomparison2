@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, LogIn, LogOut, DollarSign as PricingIcon, Clock, Settings } from 'lucide-react';
+import { BarChart3, LogIn, LogOut, DollarSign as PricingIcon, Clock, Settings, Menu, X } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import PricingPage from './pages/PricingPage';
 import HistoryPage from './pages/HistoryPage';
@@ -15,6 +15,7 @@ function Header({ isDark, isSignedIn, onSignOut, onSignInClick }: {
   onSignInClick: () => void;
 }) {
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -145,14 +146,145 @@ function Header({ isDark, isSignedIn, onSignOut, onSignInClick }: {
           </nav>
 
           {/* Mobile Menu Button */}
-          <button className={`md:hidden p-2 rounded-lg ${
-            isDark 
-              ? 'text-gray-300 hover:text-white hover:bg-gray-800' 
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}>
-            <Settings className="h-5 w-5" />
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className={`md:hidden p-2 rounded-lg transition-colors ${
+              isDark 
+                ? 'text-gray-300 hover:text-white hover:bg-gray-800' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </button>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className={`md:hidden border-t ${
+            isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+          }`}>
+                         <div className="px-4 py-4 space-y-3">
+               {isSignedIn ? (
+                 <>
+                   <Link
+                     to="/pricing"
+                     onClick={() => setIsMobileMenuOpen(false)}
+                     className={`block px-3 py-2 rounded-lg transition-colors ${
+                       isActive('/pricing')
+                         ? isDark
+                           ? 'bg-blue-600 text-white'
+                           : 'bg-blue-600 text-white'
+                         : isDark 
+                           ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                     }`}
+                   >
+                     <div className="flex items-center justify-end gap-2">
+                       <span>Plans</span>
+                       <PricingIcon className="h-4 w-4" />
+                     </div>
+                   </Link>
+                   
+                   <Link
+                     to="/history"
+                     onClick={() => setIsMobileMenuOpen(false)}
+                     className={`block px-3 py-2 rounded-lg transition-colors ${
+                       isActive('/history')
+                         ? isDark
+                           ? 'bg-blue-600 text-white'
+                           : 'bg-blue-600 text-white'
+                         : isDark 
+                           ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                     }`}
+                   >
+                     <div className="flex items-center justify-end gap-2">
+                       <span>Past Documents</span>
+                       <Clock className="h-4 w-4" />
+                     </div>
+                   </Link>
+                   
+                   <Link
+                     to="/settings"
+                     onClick={() => setIsMobileMenuOpen(false)}
+                     className={`block px-3 py-2 rounded-lg transition-colors ${
+                       isActive('/settings')
+                         ? isDark
+                           ? 'bg-blue-600 text-white'
+                           : 'bg-blue-600 text-white'
+                         : isDark 
+                           ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                     }`}
+                   >
+                     <div className="flex items-center justify-end gap-2">
+                       <span>Settings</span>
+                       <Settings className="h-4 w-4" />
+                     </div>
+                   </Link>
+                 </>
+               ) : (
+                 <Link
+                   to="/pricing"
+                   onClick={() => setIsMobileMenuOpen(false)}
+                   className={`block px-3 py-2 rounded-lg transition-colors ${
+                     isActive('/pricing')
+                       ? isDark
+                         ? 'bg-blue-600 text-white'
+                         : 'bg-blue-600 text-white'
+                       : isDark 
+                         ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                   }`}
+                 >
+                   <div className="flex items-center justify-end gap-2">
+                     <span>Pricing</span>
+                     <PricingIcon className="h-4 w-4" />
+                   </div>
+                 </Link>
+               )}
+
+               {/* Mobile Sign In/Out Button */}
+               <button
+                 onClick={() => {
+                   if (isSignedIn) {
+                     onSignOut();
+                   } else {
+                     onSignInClick();
+                   }
+                   setIsMobileMenuOpen(false);
+                 }}
+                 className={`w-full px-3 py-2 rounded-lg transition-colors font-medium ${
+                   isSignedIn
+                     ? isDark
+                       ? 'bg-red-600 hover:bg-red-700 text-white'
+                       : 'bg-red-600 hover:bg-red-700 text-white'
+                     : isDark
+                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                       : 'bg-blue-600 hover:bg-blue-700 text-white'
+                 }`}
+               >
+                 <div className="flex items-center justify-end gap-2">
+                   {isSignedIn ? (
+                     <>
+                       <span>Sign Out</span>
+                       <LogOut className="h-4 w-4" />
+                     </>
+                   ) : (
+                     <>
+                       <span>Sign In</span>
+                       <LogIn className="h-4 w-4" />
+                     </>
+                   )}
+                 </div>
+               </button>
+             </div>
+          </div>
+        )}
       </div>
     </header>
   );
