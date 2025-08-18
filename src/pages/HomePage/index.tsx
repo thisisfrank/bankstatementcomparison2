@@ -211,9 +211,9 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
         user?.id // Pass userId if signed in
       );
     } catch (error) {
-      // If API fails, offer sample data as fallback
-      console.log('🔄 API failed, offering sample data fallback');
-      setError('API processing failed. Please try again with different files or use sample data.');
+      // Show user-friendly error message for API failures
+      console.log('🔄 API failed, showing user-friendly error message');
+      setError('We\'re experiencing a slight issue at the moment. We apologize for any inconvenience, we are working to find a solution.');
     }
     
     // Note: Result handling is now done via useEffect watching apiResult/apiError

@@ -227,7 +227,7 @@ export function useApiComparison(): UseApiComparisonReturn {
       if (userId) {
         try {
           // Use actual page counts from API response instead of hardcoded values
-          const pagesConsumed = apiResults.totalPages || 2; // Fallback to 2 if not available
+          const pagesConsumed = apiResults.totalPages;
           
           console.log('📊 Using actual page counts:', {
             file1Pages: apiResults.file1Pages,
@@ -297,8 +297,8 @@ export function useApiComparison(): UseApiComparisonReturn {
       // Fix 2: Deduct credits after successful processing
       try {
         console.log('💳 Deducting credits after successful comparison...');
-        // Use actual pages consumed instead of hardcoded value
-        const actualPagesConsumed = apiResults.totalPages || 2;
+        // Use actual pages consumed from API response
+        const actualPagesConsumed = apiResults.totalPages;
         await apiService.deductCreditsAfterProcessing(actualPagesConsumed);
         console.log(`✅ Credits deducted successfully: ${actualPagesConsumed} credits for ${actualPagesConsumed} pages`);
       } catch (error) {
