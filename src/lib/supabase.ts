@@ -59,5 +59,7 @@ export interface UsageLog {
   file1_pages?: number
   file2_pages?: number
   comparison_summary?: any
-  status?: string
+  status?: 'completed' | 'failed' | 'validation_error' | 'api_error' | 'database_error'
+  error_message?: string
+  processing_time?: number
 }

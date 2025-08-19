@@ -4,7 +4,6 @@ import { useApiComparison } from '../../hooks/useApiComparison';
 import { useAuth } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorAlert } from '../../components/ErrorAlert';
-import FileManager from '../../components/FileManager';
 import { apiService } from '../../services/api';
 import { Transaction } from '../../types';
 import HeroSection from './HeroSection';
@@ -299,9 +298,6 @@ export default function HomePage({ isDark, isSignedIn }: { isDark: boolean; isSi
             onUseSampleData={handleUseSampleData}
             setEditingLabel={setEditingLabel}
           />
-
-          {/* File Manager - Only show for signed in users */}
-          {isSignedIn && <FileManager isDark={isDark} />}
 
           {/* Benefits Section - Show for all users */}
           <BenefitsSection isDark={isDark} />

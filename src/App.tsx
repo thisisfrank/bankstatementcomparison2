@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import PricingPage from './pages/PricingPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminPage from './pages/AdminPage';
 import { useAuth } from './hooks/useAuth';
 import AuthModal from './components/AuthModal';
 
@@ -340,6 +341,7 @@ function AppContent() {
         <Route path="/pricing" element={<PricingPage isDark={isDarkMode} onShowAuthModal={() => setShowAuthModal(true)} />} />
         <Route path="/history" element={<HistoryPage isDark={isDarkMode} />} />
         <Route path="/settings" element={<SettingsPage isDark={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} user={user} />} />
+        <Route path="/admin" element={<AdminPage isDark={isDarkMode} />} />
       </Routes>
 
               <AuthModal

@@ -66,6 +66,46 @@ async function updateUserSubscriptionPages(userId: string, pagesConsumed: number
   }
 }
 
+// Function to log failed attempts to the database
+async function logFailedAttempt(
+  userId: string | undefined,
+  file1Name: string,
+  file2Name: string,
+  errorType: 'validation_error' | 'api_error' | 'database_error',
+  errorMessage: string,
+  file1Pages?: number,
+  file2Pages?: number
+): Promise<void> {
+  if (!userId) {
+    console.log('⚠️ No userId provided, skipping failed attempt logging');
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('usage_logs')
+      .insert({
+        user_id: userId,
+        pages_consumed: 0, // No pages consumed for failed attempts
+        created_at: new Date().toISOString(),
+        statement1_name: file1Name,
+        statement2_name: file2Name,
+        file1_pages: file1Pages || 0,
+        file2_pages: file2Pages || 0,
+        status: errorType,
+        error_message: errorMessage
+      });
+
+    if (error) {
+      console.error('Failed to log failed attempt to Supabase:', error);
+    } else {
+      console.log('📝 Logged failed attempt to database:', { errorType, errorMessage });
+    }
+  } catch (error) {
+    console.error('Error logging failed attempt:', error);
+  }
+}
+
 interface UseApiComparisonReturn {
   // State
   isLoading: boolean;
@@ -73,14 +113,14 @@ interface UseApiComparisonReturn {
   result: ComparisonResult | null;
   progress: number;
 
-    // Actions
+  // Actions
   compareStatements: (file1: File, file2: File, userId?: string) => Promise<void>;
   setError: (error: string) => void;
   clearError: () => void;
   clearResult: () => void;
   setResult: (result: ComparisonResult) => void;
   reset: () => void;
-  validateFiles: (file1: File, file2: File) => { isValid: boolean; errors: string[] };
+  validateFiles: (file1: File, file2: File, userId?: string) => Promise<{ isValid: boolean; errors: string[] }>;
 }
 
 export function useApiComparison(): UseApiComparisonReturn {
@@ -89,16 +129,48 @@ export function useApiComparison(): UseApiComparisonReturn {
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [progress, setProgress] = useState(0);
 
-  const validateFiles = useCallback((file1: File, file2: File) => {
+  const validateFiles = useCallback(async (file1: File, file2: File, userId?: string) => {
     const errors: string[] = [];
 
-    // Only check if files are the same - individual file validation should be done at upload time
+    // Check if files are the same
     if (file1.name === file2.name && file1.size === file2.size) {
       errors.push('Please select two different files for comparison');
     }
 
+    // Check file types
+    if (!file1.name.toLowerCase().endsWith('.pdf')) {
+      errors.push('File 1 must be a PDF file');
+    }
+    if (!file2.name.toLowerCase().endsWith('.pdf')) {
+      errors.push('File 2 must be a PDF file');
+    }
+
+    // Check file sizes (max 50MB each)
+    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+    if (file1.size > maxSize) {
+      errors.push('File 1 is too large (max 50MB)');
+    }
+    if (file2.size > maxSize) {
+      errors.push('File 2 is too large (max 50MB)');
+    }
+
+    const isValid = errors.length === 0;
+
+    // Log validation failures
+    if (!isValid && userId) {
+      await logFailedAttempt(
+        userId,
+        file1.name,
+        file2.name,
+        'validation_error',
+        errors.join('; '),
+        0,
+        0
+      );
+    }
+
     return {
-      isValid: errors.length === 0,
+      isValid,
       errors
     };
   }, []);
@@ -114,7 +186,7 @@ export function useApiComparison(): UseApiComparisonReturn {
     setProgress(0);
 
     // Validate files are different
-    const validation = validateFiles(file1, file2);
+    const validation = await validateFiles(file1, file2, userId);
     if (!validation.isValid) {
       setError(validation.errors.join('; '));
       return;
@@ -308,6 +380,20 @@ export function useApiComparison(): UseApiComparisonReturn {
       
     } catch (err) {
       console.error('Comparison error:', err);
+      
+      // Log API errors to database
+      if (userId) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        await logFailedAttempt(
+          userId,
+          file1.name,
+          file2.name,
+          'api_error',
+          errorMessage,
+          0,
+          0
+        );
+      }
       
       if (err instanceof Error) {
         setError(err.message);
