@@ -3,6 +3,15 @@
 // Based on real Wells Fargo bank statement data
 
 export class TransactionCategorizer {
+  private static customCategories: string[] = [];
+
+  /**
+   * Initialize custom categories from localStorage
+   */
+  static initialize(): void {
+    this.loadCustomCategories();
+  }
+
   /**
    * Categorize transaction based on description using real-world patterns
    */
@@ -93,5 +102,56 @@ export class TransactionCategorizer {
       'Groceries',
       'Other'
     ];
+  }
+
+  /**
+   * Get all available categories including custom ones
+   */
+  static getAllCategories(): string[] {
+    return [...this.getAvailableCategories(), ...this.customCategories];
+  }
+
+  /**
+   * Add a custom category
+   */
+  static addCustomCategory(category: string): void {
+    if (!this.customCategories.includes(category)) {
+      this.customCategories.push(category);
+      // Save to localStorage for persistence
+      this.saveCustomCategories();
+    }
+  }
+
+  /**
+   * Remove a custom category
+   */
+  static removeCustomCategory(category: string): void {
+    this.customCategories = this.customCategories.filter(cat => cat !== category);
+    this.saveCustomCategories();
+  }
+
+  /**
+   * Load custom categories from localStorage
+   */
+  private static loadCustomCategories(): void {
+    try {
+      const saved = localStorage.getItem('customCategories');
+      if (saved) {
+        this.customCategories = JSON.parse(saved);
+      }
+    } catch (error) {
+      console.warn('Failed to load custom categories:', error);
+    }
+  }
+
+  /**
+   * Save custom categories to localStorage
+   */
+  private static saveCustomCategories(): void {
+    try {
+      localStorage.setItem('customCategories', JSON.stringify(this.customCategories));
+    } catch (error) {
+      console.warn('Failed to save custom categories:', error);
+    }
   }
 }

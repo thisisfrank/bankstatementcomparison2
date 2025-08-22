@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3, LogIn, LogOut, DollarSign as PricingIcon, Clock, Settings, Menu, X } from 'lucide-react';
 import HomePage from './pages/HomePage';
@@ -8,6 +8,7 @@ import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import { useAuth } from './hooks/useAuth';
 import AuthModal from './components/AuthModal';
+import { TransactionCategorizer } from './services/categorizer';
 
 function Header({ isDark, isSignedIn, onSignOut, onSignInClick }: { 
   isDark: boolean; 
@@ -296,6 +297,11 @@ function AppContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { isSignedIn, signOut, signIn, signUp, loading, user } = useAuth();
   const navigate = useNavigate();
+
+  // Initialize the categorizer when the app starts
+  useEffect(() => {
+    TransactionCategorizer.initialize();
+  }, []);
 
   const handleSignOut = async () => {
     console.log('Sign out button clicked, attempting to sign out...');
