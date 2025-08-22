@@ -8,7 +8,7 @@ interface AdminPageProps {
 }
 
 interface AdminCredentials {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -30,7 +30,7 @@ interface AttemptRecord {
 export default function AdminPage({ isDark }: AdminPageProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [credentials, setCredentials] = useState<AdminCredentials>({
-    username: '',
+    email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -42,6 +42,32 @@ export default function AdminPage({ isDark }: AdminPageProps) {
   const [failedAttempts, setFailedAttempts] = useState<AttemptRecord[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [isDataLoading, setIsDataLoading] = useState(false);
+
+  // Check if current user is admin on component mount
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Check if user is admin
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.is_admin) {
+          setIsLoggedIn(true);
+          await fetchAdminData();
+        }
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
 
   const fetchAdminData = async () => {
     setIsDataLoading(true);
@@ -101,22 +127,52 @@ export default function AdminPage({ isDark }: AdminPageProps) {
     setIsLoading(true);
     setError(null);
 
-    // Simple admin credentials check
-    // In a real app, this would be server-side validation
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      setIsLoggedIn(true);
-      // Fetch data after successful login
-      await fetchAdminData();
-    } else {
-      setError('Invalid admin credentials');
+    try {
+      // Sign in with Supabase auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      if (data.user) {
+        // Check if user is admin
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          setError('Error checking admin status');
+          return;
+        }
+
+        if (profile?.is_admin) {
+          setIsLoggedIn(true);
+          await fetchAdminData();
+        } else {
+          setError('Access denied. Admin privileges required.');
+          // Sign out the non-admin user
+          await supabase.auth.signOut();
+        }
+      }
+    } catch (error) {
+      setError('An unexpected error occurred');
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsLoggedIn(false);
-    setCredentials({ username: '', password: '' });
+    setCredentials({ email: '', password: '' });
     setError(null);
     setSuccessfulAttempts([]);
     setFailedAttempts([]);
@@ -428,9 +484,9 @@ export default function AdminPage({ isDark }: AdminPageProps) {
           <div className={`inline-flex p-3 rounded-lg ${isDark ? 'bg-red-600' : 'bg-red-600'} mb-4`}>
             <Shield className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold">Admin Login</h1>
+          <h1 className="text-2xl font-bold text-white">Admin Login</h1>
           <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'} mt-2`}>
-            Enter your admin credentials to access the dashboard
+            Sign in with your admin account to access the dashboard
           </p>
         </div>
 
@@ -443,20 +499,20 @@ export default function AdminPage({ isDark }: AdminPageProps) {
           )}
 
           <div>
-            <label htmlFor="username" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              Username
+            <label htmlFor="email" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Email
             </label>
             <input
-              type="text"
-              id="username"
-              value={credentials.username}
-              onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+              type="email"
+              id="email"
+              value={credentials.email}
+              onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 ${
                 isDark 
                   ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                   : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
               }`}
-              placeholder="Enter admin username"
+              placeholder="Enter your email"
               required
             />
           </div>
@@ -476,7 +532,7 @@ export default function AdminPage({ isDark }: AdminPageProps) {
                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                     : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                 }`}
-                placeholder="Enter admin password"
+                placeholder="Enter your password"
                 required
               />
               <button
@@ -513,15 +569,6 @@ export default function AdminPage({ isDark }: AdminPageProps) {
             )}
           </button>
         </form>
-
-        {/* Demo Credentials */}
-        <div className={`mt-6 p-4 rounded-lg ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'}`}>
-          <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            <strong>Demo Credentials:</strong><br />
-            Username: <code className="bg-gray-200 px-1 rounded">admin</code><br />
-            Password: <code className="bg-gray-200 px-1 rounded">admin123</code>
-          </p>
-        </div>
       </div>
     </div>
   );
