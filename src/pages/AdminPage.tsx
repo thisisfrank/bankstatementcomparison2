@@ -25,6 +25,7 @@ interface AttemptRecord {
   errorMessage?: string;
   timestamp: string;
   processingTime?: number;
+  comparisonSummary?: any;
 }
 
 export default function AdminPage({ isDark }: AdminPageProps) {
@@ -42,6 +43,8 @@ export default function AdminPage({ isDark }: AdminPageProps) {
   const [failedAttempts, setFailedAttempts] = useState<AttemptRecord[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [isDataLoading, setIsDataLoading] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<AttemptRecord | null>(null);
+  const [showJsonModal, setShowJsonModal] = useState(false);
 
   // Check if current user is admin on component mount
   useEffect(() => {
@@ -101,7 +104,8 @@ export default function AdminPage({ isDark }: AdminPageProps) {
         status: log.status || 'completed',
         errorMessage: log.error_message,
         timestamp: log.created_at,
-        processingTime: log.processing_time
+        processingTime: log.processing_time,
+        comparisonSummary: log.comparison_summary
       }));
 
       // Separate successful and failed attempts
@@ -120,6 +124,16 @@ export default function AdminPage({ isDark }: AdminPageProps) {
     } finally {
       setIsDataLoading(false);
     }
+  };
+
+  const handleShowJson = (record: AttemptRecord) => {
+    setSelectedRecord(record);
+    setShowJsonModal(true);
+  };
+
+  const closeJsonModal = () => {
+    setShowJsonModal(false);
+    setSelectedRecord(null);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -334,10 +348,10 @@ export default function AdminPage({ isDark }: AdminPageProps) {
                           Pages
                         </th>
                         <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
-                          Processing Time
+                          Date
                         </th>
                         <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
-                          Date
+                          Actions
                         </th>
                       </tr>
                     </thead>
@@ -351,25 +365,40 @@ export default function AdminPage({ isDark }: AdminPageProps) {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="text-sm">
-                              <div className="font-medium">{attempt.statement1Name}</div>
-                              <div className="text-gray-500">{attempt.statement2Name}</div>
+                            <div className="text-sm space-y-1">
+                              <div className="font-medium text-gray-900 dark:text-white">{attempt.statement1Name}</div>
+                              <div className="font-medium text-gray-900 dark:text-white">{attempt.statement2Name}</div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm">{attempt.totalPages} pages</span>
+                            <div className="text-sm space-y-1">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span>{attempt.file1Pages}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span>{attempt.file2Pages}</span>
+                              </div>
                             </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-sm">{attempt.processingTime ? `${attempt.processingTime}s` : 'N/A'}</span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-gray-400" />
                               <span className="text-sm">{formatDate(attempt.timestamp)}</span>
                             </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => handleShowJson(attempt)}
+                              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                                isDark 
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                              }`}
+                            >
+                              View Details
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -421,6 +450,9 @@ export default function AdminPage({ isDark }: AdminPageProps) {
                         <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                           Date
                         </th>
+                        <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
@@ -433,15 +465,21 @@ export default function AdminPage({ isDark }: AdminPageProps) {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="text-sm">
-                              <div className="font-medium">{attempt.statement1Name}</div>
-                              <div className="text-gray-500">{attempt.statement2Name}</div>
+                            <div className="text-sm space-y-1">
+                              <div className="font-medium text-gray-900 dark:text-white">{attempt.statement1Name}</div>
+                              <div className="font-medium text-gray-900 dark:text-white">{attempt.statement2Name}</div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm">{attempt.totalPages} pages</span>
+                            <div className="text-sm space-y-1">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span>{attempt.file1Pages}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span>{attempt.file2Pages}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -463,6 +501,18 @@ export default function AdminPage({ isDark }: AdminPageProps) {
                               <span className="text-sm">{formatDate(attempt.timestamp)}</span>
                             </div>
                           </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => handleShowJson(attempt)}
+                              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                                isDark 
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                              }`}
+                            >
+                              View Details
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -471,6 +521,108 @@ export default function AdminPage({ isDark }: AdminPageProps) {
               )}
             </div>
           </div>
+
+          {/* Details Modal */}
+          {showJsonModal && selectedRecord && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className={`w-full max-w-4xl max-h-[90vh] ${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl overflow-hidden`}>
+                <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <h3 className="text-lg font-semibold">Attempt Details - Troubleshooting</h3>
+                  <button
+                    onClick={closeJsonModal}
+                    className={`p-2 rounded-lg hover:bg-gray-100 ${isDark ? 'hover:bg-gray-700' : ''}`}
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
+                  {/* File Information Section */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold mb-3 text-blue-600">File Information</h4>
+                    <div className={`grid grid-cols-2 gap-4 p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                      <div>
+                        <p className="font-medium text-sm text-gray-600 dark:text-gray-400">Statement 1</p>
+                        <p className="font-semibold">{selectedRecord.statement1Name}</p>
+                        <p className="text-sm text-gray-500">{selectedRecord.file1Pages} pages</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-gray-600 dark:text-gray-400">Statement 2</p>
+                        <p className="font-semibold">{selectedRecord.statement2Name}</p>
+                        <p className="text-sm text-gray-500">{selectedRecord.file2Pages} pages</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Processing Details Section */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold mb-3 text-green-600">Processing Details</h4>
+                    <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                                          <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="font-medium text-sm text-gray-600 dark:text-gray-400">Status</p>
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedRecord.status)}`}>
+                          {getStatusLabel(selectedRecord.status)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-gray-600 dark:text-gray-400">Total Pages</p>
+                        <p className="font-semibold">{selectedRecord.totalPages}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-gray-600 dark:text-gray-400">Date</p>
+                        <p className="font-semibold">{formatDate(selectedRecord.timestamp)}</p>
+                      </div>
+                    </div>
+                    </div>
+                  </div>
+
+                  {/* User Context Section */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold mb-3 text-purple-600">User Context</h4>
+                    <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                      <p className="font-medium text-sm text-gray-600 dark:text-gray-400">User Email</p>
+                      <p className="font-semibold">{selectedRecord.userEmail}</p>
+                    </div>
+                  </div>
+
+                  {/* Error Details (if failed) */}
+                  {selectedRecord.status !== 'completed' && selectedRecord.errorMessage && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold mb-3 text-red-600">🚨 Error Details</h4>
+                      <div className={`p-4 rounded-lg ${isDark ? 'bg-red-900/20 border border-red-700' : 'bg-red-50 border border-red-200'}`}>
+                        <div className="mb-3">
+                          <p className="font-medium text-sm text-red-600 mb-1">Error Type:</p>
+                          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedRecord.status)}`}>
+                            {getStatusLabel(selectedRecord.status)}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-red-600 mb-2">Specific Error:</p>
+                          <p className="text-sm text-red-700 dark:text-red-400 font-mono bg-red-100 dark:bg-red-900/30 p-2 rounded border">
+                            {selectedRecord.errorMessage}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Success Summary (if completed) */}
+                  {selectedRecord.status === 'completed' && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold mb-3 text-green-600">✅ Success Summary</h4>
+                      <div className={`p-4 rounded-lg ${isDark ? 'bg-green-900/20 border border-green-700' : 'bg-green-50 border border-green-200'}`}>
+                        <p className="text-sm text-green-700 dark:text-green-400">
+                          Comparison completed successfully. {selectedRecord.totalPages} pages processed.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -573,3 +725,4 @@ export default function AdminPage({ isDark }: AdminPageProps) {
     </div>
   );
 }
+        
